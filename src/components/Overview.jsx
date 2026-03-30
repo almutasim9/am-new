@@ -135,8 +135,9 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       </motion.div>
 
       {/* ── Stat Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+      <div className="stats-grid">
         <StatCard
+
           icon={Users}
           label="المتاجر النشطة"
           value={stats.totalStores}
@@ -173,8 +174,9 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
           <Zap size={14} style={{ display: 'inline', marginLeft: '4px' }} />
           إجراءات سريعة
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+        <div className="quick-actions-grid">
           {quickActions.map(({ label, icon: Icon, tab, color }) => (
+
             <motion.button
               key={tab}
               whileHover={{ y: -3, boxShadow: '0 12px 24px -6px rgba(0,0,0,0.12)' }}
@@ -201,7 +203,8 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       </motion.div>
 
       {/* ── Bottom Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+      <div className="bottom-row-grid">
+
 
         {/* Overdue / Recent feed */}
         <motion.div className="glass-card" style={{ padding: '1.75rem' }} {...fadeUp(0.3)}>
@@ -402,8 +405,32 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
         </motion.div>
 
       </div>
+      <style>{`
+        .stats-grid { 
+          display: grid; 
+          grid-template-columns: repeat(2, 1fr); 
+          gap: 0.75rem; 
+        }
+        .quick-actions-grid { 
+          display: grid; 
+          grid-template-columns: repeat(4, 1fr); 
+          gap: 0.75rem; 
+        }
+        .bottom-row-grid { 
+          display: grid; 
+          grid-template-columns: 1.5fr 1fr; 
+          gap: 1.5rem; 
+        }
+
+        @media (max-width: 768px) {
+          .stats-grid { grid-template-columns: 1fr; }
+          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+          .bottom-row-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </div>
   );
 };
+
 
 export default Overview;

@@ -1,19 +1,41 @@
 import React from 'react';
-import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User, X, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
-const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStore, user }) => {
+const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStore, user, isOpen, onClose }) => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
   return (
-    <aside className="sidebar">
-      <div style={{ padding: '0.5rem', marginBottom: '2rem' }}>
-        <h1 className="gradient-text" style={{ fontSize: '1.75rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <CalendarCheck size={28} /> Registry
-        </h1>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '4px' }}>ACTIVITY CORE v2.7</p>
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <div style={{ padding: '0.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="gradient-text" style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <CalendarCheck size={26} /> Registry
+          </h1>
+          <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '2px' }}>v2.7 MOBILE READY</p>
+        </div>
+        <button 
+          onClick={onClose} 
+          className="mobile-only"
+          style={{ 
+            padding: '8px', 
+            borderRadius: '10px', 
+            background: 'var(--surface-hover)',
+            color: 'var(--text-secondary)',
+            display: 'none' // Hidden by default, shown via CSS in mobile view
+          }}
+        >
+          <X size={20} />
+        </button>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-only { display: flex !important; }
+        }
+      `}</style>
+
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <button 
@@ -62,6 +84,13 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
         </button>
         <button className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
           <SettingsIcon size={20} /> Settings
+        </button>
+        <button 
+          className={`nav-link ${activeTab === 'recycle' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('recycle')}
+          style={{ color: 'var(--danger)', opacity: activeTab === 'recycle' ? 1 : 0.7 }}
+        >
+          <Trash2 size={20} /> Recycle Bin
         </button>
         
         <button 

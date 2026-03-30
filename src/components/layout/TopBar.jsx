@@ -1,12 +1,13 @@
 import React from 'react';
-import { Bell, BellOff, Search, Command } from 'lucide-react';
+import { Bell, BellOff, Search, Command, Menu } from 'lucide-react';
 
 const TopBar = ({ 
   overdueCount, 
   notifPermission, 
   onHandleRequestPermission, 
   setActiveTab,
-  onOpenSearch // New prop for global search
+  onOpenSearch,
+  onToggleSidebar
 }) => {
   return (
     <header style={{ 
@@ -14,33 +15,48 @@ const TopBar = ({
       justifyContent: 'space-between', 
       alignItems: 'center', 
       padding: '0.5rem 0', 
-      marginBottom: '1.5rem' 
+      marginBottom: '1.5rem',
+      gap: '12px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+        <button 
+          onClick={onToggleSidebar}
+          className="mobile-only sidebar-toggle"
+          style={{ 
+            display: 'none', 
+            padding: '10px', 
+            borderRadius: '12px', 
+            background: 'var(--surface-color)', 
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)'
+          }}
+        >
+          <Menu size={22} />
+        </button>
 
-
-        {/* Global Search Trigger Area */}
         <div 
           onClick={onOpenSearch}
-          className="glass-card" 
+          className="glass-card search-trigger" 
           style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px', 
             padding: '8px 16px', 
             cursor: 'pointer',
-            minWidth: '300px',
+            flex: 1,
+            maxWidth: '400px',
             border: '1px solid var(--border-color)',
             background: 'var(--surface-hover)',
             borderRadius: '12px',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minWidth: 0
           }}
         >
-          <Search size={18} color="var(--text-dim)" />
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-dim)', flexGrow: 1 }}>
+          <Search size={18} color="var(--text-dim)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-dim)', flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             Quick search...
           </span>
-          <div style={{ 
+          <div className="desktop-only" style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '2px', 
@@ -55,6 +71,15 @@ const TopBar = ({
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-only.sidebar-toggle { display: flex !important; }
+          .desktop-only { display: none !important; }
+          .search-trigger { max-width: none !important; }
+        }
+      `}</style>
+
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div 

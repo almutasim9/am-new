@@ -138,6 +138,13 @@ const Stats = ({ calls, outcomes, stores }) => {
         .filter-system-v29 {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr auto;
+        }
+        @media (max-width: 768px) {
+          .filter-system-v29 { grid-template-columns: 1fr 1fr; }
+          .filter-range-inputs { flex-direction: column; gap: 4px; }
+          .filter-actions-v29 { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; }
+        }
+        .filter-system-v29 {
           gap: 1.5rem;
           background: var(--card-bg);
           padding: 1.5rem;
@@ -175,9 +182,17 @@ const Stats = ({ calls, outcomes, stores }) => {
         .record-counter span { color: var(--primary-color); }
       `}</style>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-        <motion.div 
-          className="glass-card" 
+      {filteredCalls.length === 0 && (
+        <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)', marginBottom: '1.5rem', border: '2px dashed var(--border-color)' }}>
+          <Layers size={40} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+          <p style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)' }}>No records for this date range</p>
+          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Try adjusting the filters above</p>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', gap: '1.5rem' }}>
+        <motion.div
+          className="glass-card"
           style={{ padding: '1.5rem', height: '350px' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -249,7 +264,7 @@ const Stats = ({ calls, outcomes, stores }) => {
               <XAxis type="number" hide />
               <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} />
               <Tooltip cursor={{fill: 'var(--surface-hover)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
-              <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} barSize={20} />
+              <Bar dataKey="value" fill="var(--success)" radius={[0, 6, 6, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>

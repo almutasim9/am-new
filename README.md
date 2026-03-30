@@ -1,95 +1,70 @@
 # Activity Registry — Merchant Support CRM
 
-A modern, real-time CRM web app for managing merchant support activities, store registries, and daily follow-ups. Built as a Progressive Web App (PWA) with offline support.
+A modern, real-time CRM web app for managing merchant support activities, store registries, and daily follow-ups. Built as a Progressive Web App (PWA) with offline support and a premium "World Class" user interface.
 
-## Features
+## 🚀 Key Features
 
-- **Authentication** — Secure login via Supabase Auth (admin-only access)
-- **Dashboard** — Real-time overview with stats, overdue reminders, and quick actions
-- **Store Registry** — Add, edit, import/export restaurants and merchants
-- **Activity Log** — Log daily calls, outcomes, and follow-up tasks
-- **Statistics** — Visual charts for performance tracking
-- **Weekly Target** — Set and track weekly activity goals
-- **Library** — Quick-access links for daily tools
-- **Settings** — Manage outcomes, zones, categories, and notifications
-- **Global Search** — Search across stores and activities instantly
-- **PWA** — Installable on desktop and mobile, works offline
+- **Brand Management** — Track stores by `Brand ID` across the registry and activity logs.
+- **Smart Data Sync (Upsert)** — Bulk import stores from Excel with intelligent synchronization; updates existing records and adds new ones in one go.
+- **Premium Interaction Sheet** — Professional, bilingual (Arabic/English) logging interface with sticky glass footers and quick-action templates.
+- **Real-time Collaboration** — Instantly see updates across devices via Supabase Realtime.
+- **Advanced Registry** — Manage restaurants with deep categorization, zone filtering, and quick contact actions (WhatsApp/Phone).
+- **PWA Excellence** — Desktop and mobile installable, optimized for high-speed offline performance.
+- **Analytics & Targets** — Visual performance tracking with monthly goal setting.
 
-## Tech Stack
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 19 + Vite |
-| Styling | CSS Variables + Framer Motion |
-| Backend | Supabase (PostgreSQL + Realtime) |
-| Auth | Supabase Auth (RLS - authenticated users only) |
-| Charts | Recharts |
-| Excel | XLSX |
-| PWA | vite-plugin-pwa |
+| **Frontend** | React 19 + Vite |
+| **Logic** | Custom Hooks + Context API |
+| **Styling** | Vanilla CSS (Variables) + Framer Motion |
+| **Backend** | Supabase (PostgreSQL + Realtime) |
+| **Excel Ops** | XLSX (Indestructible Download Stream) |
+| **PWA** | vite-plugin-pwa |
 
-## Getting Started
+## 📖 Getting Started
 
-### 1. Clone the repository
-
+### 1. Installation
 ```bash
 git clone https://github.com/almutasim9/am-new.git
 cd am-new
 npm install
 ```
 
-### 2. Set up environment variables
-
-Create a `.env` file in the root directory:
-
+### 2. Environment Setup
+Create a `.env` file in the root:
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-> Get these from your Supabase project → Settings → API
-
-### 3. Set up the database
-
-Run `reset_database.sql` in your Supabase SQL Editor. This will:
-- Create all required tables
-- Enable Row Level Security (authenticated users only)
-- Seed default data (outcomes, categories)
-- Enable Realtime subscriptions
-
-### 4. Create an admin user
-
-Go to Supabase Dashboard → Authentication → Users → Add user
-
-### 5. Run the app
-
-```bash
-npm run dev
+### 3. Database Sync
+Run the initial `schema.sql` in your Supabase SQL Editor. 
+**Important:** If updating from an older version, ensure the `brand_id` column exists:
+```sql
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS brand_id TEXT;
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+### 4. Excel Import Requirements
+To use the Bulk Import feature, your Excel file should contain the following headers:
+- `ID`, `Name`, `Category`, `Zone`, `Phone`, `Brand_ID`, `Owner`
 
-## Database Schema
+## 📊 Database Architecture
 
-| Table | Description |
-|-------|-------------|
-| `stores` | Merchant/restaurant registry |
-| `calls` | Activity log and follow-up tasks |
-| `call_outcomes` | Outcome types (POS Issue, Menu Update, etc.) |
-| `zones` | Geographic zones |
-| `store_categories` | Store category types |
-| `library_links` | Quick-access links |
-| `targets` | Monthly activity targets |
+| Table | Purpose |
+|-------|---------|
+| `stores` | Master registry (ID, Name, Brand_ID, category, zone, etc.) |
+| `calls` | Transactional activity logs and follow-up tasks |
+| `call_outcomes` | Configuration for interaction results |
+| `library_links` | Centralized resource management |
+| `targets` | Monthly operational KPI goals |
 
-## Build for Production
+## 🔐 Security & Deployment
 
-```bash
-npm run build
-```
+- **RLS Protection:** Every table is protected by Row Level Security (`authenticated` users only).
+- **MIME Safety:** File downloads use `application/octet-stream` to ensure cross-browser compatibility.
+- **PWA Caching:** Service Workers handle asset caching for reliable offline access.
 
-Output goes to `dist/` — deploy to any static hosting (Vercel, Netlify, etc.)
-
-## Security
-
-- All database access requires Supabase Auth session
-- Row Level Security enabled on all tables (`TO authenticated`)
-- `.env` file excluded from version control
+---
+*Maintained with excellence by the Merchant Support Team.*

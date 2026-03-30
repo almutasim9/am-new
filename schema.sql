@@ -20,14 +20,17 @@ CREATE TABLE stores (
   area VARCHAR(100),
   address TEXT,
   map_link TEXT,
+  brand_id TEXT, -- Added for brand tracking
   cashier_phone VARCHAR(50),
   accounts_manager_phone VARCHAR(50),
   restaurant_manager_phone VARCHAR(50),
   has_pos BOOLEAN DEFAULT FALSE,
   has_sim BOOLEAN DEFAULT FALSE,
   is_active BOOLEAN DEFAULT TRUE, -- To deactivate without deleting
+  deleted_at TIMESTAMP WITH TIME ZONE, -- Soft delete support (Recycle Bin)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- 3. Call Registration & Task Management
 CREATE TABLE calls (
@@ -117,3 +120,20 @@ ALTER TABLE targets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated read targets"  ON targets FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated write targets" ON targets FOR ALL    TO authenticated USING (true) WITH CHECK (true);
 ALTER PUBLICATION supabase_realtime ADD TABLE targets;
+
+-- 8. Closure Reasons Management
+CREATE TABLE closure_reasons (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed default closure reasons
+INSERT INTO closure_reasons (name) VALUES 
+('تغيير نشاط'), ('نقل الموقع'), ('ضعف الإقبال'), ('خسارة مالية'), ('قرار إداري');
+
+ALTER TABLE closure_reasons ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated read closure_reasons"  ON closure_reasons FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated write closure_reasons" ON closure_reasons FOR ALL    TO authenticated USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE closure_reasons;
+

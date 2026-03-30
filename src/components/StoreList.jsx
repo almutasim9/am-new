@@ -1,36 +1,70 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { Plus, Search, MapPin, Phone, User, Activity, FileDown, FileUp, Loader2, Pencil, X, Layers, Globe, Compass, ExternalLink, Trash2, Info, Store } from 'lucide-react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { 
+  Plus, Search, MapPin, Phone, User, Activity, FileDown, FileUp, 
+  Loader2, X, Layers, Globe, Compass, ExternalLink, Trash2, 
+  Info, Store, Copy, ChevronRight, MessageCircle, Smartphone,
+  LayoutGrid, List
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import StoreProfile from './StoreProfile';
 
-const StoreList = ({ stores, activities, outcomes, categories, zones, selectedStoreId, onSelectStore, onAddStore, onUpdateStore, onToggleStatus, onDeleteStore, onBulkAdd, onNotify }) => {
+const StoreList = ({ 
+  stores, 
+  activities, 
+  outcomes, 
+  categories, 
+  zones, 
+  selectedStoreId, 
+  onSelectStore, 
+  onAddStore, 
+  onUpdateStore, 
+  onToggleStatus, 
+  onDeleteStore, 
+  onBulkAdd, 
+  onNotify, 
+  onAddActivity, 
+  closureReasons,
+  onQuickLog
+}) => {
+  const PAGE_SIZE = 20;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterZone, setFilterZone] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
   const fileInputRef = useRef(null);
   
-  const [newStore, setNewStore] = useState({ id: '', name: '', category: '', owner_name: '', phone: '', zone: '', area: '', address: '', map_link: '' });
-  const [editingStore, setEditingStore] = useState(null);
+  const [newStore, setNewStore] = useState({ 
+    id: '', name: '', category: '', owner_name: '', 
+    phone: '', zone: '', area: '', address: '', map_link: '', 
+    brand_id: '' 
+  });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
   const filteredStores = useMemo(() =>
     stores.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                           s.id.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesSearch =
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.id.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.phone?.includes(debouncedSearch);
       const matchesCategory = !filterCategory || s.category === filterCategory;
       const matchesZone = !filterZone || s.zone === filterZone;
       return matchesSearch && matchesCategory && matchesZone;
     }),
   [stores, debouncedSearch, filterCategory, filterZone]);
+
+  const totalPages = Math.ceil(filteredStores.length / PAGE_SIZE);
+  const pagedStores = filteredStores.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleSearchChange = (val) => { setSearchTerm(val); setCurrentPage(1); };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -46,45 +80,33 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
         
-        const existingIds = new Set(stores.map(s => s.id));
-        const duplicates = [];
-        const toAdd = [];
+        if (data.length > 0) {
+          const toProcess = data.map(item => {
+            const id = String(item.ID || item.id || '');
+            const name = String(item.Name || item.name || '');
+            if (!id || !name) return null;
 
-        data.forEach(item => {
-          const id = String(item.ID || item.id || '');
-          const name = String(item.Name || item.name || '');
-          if (!id || !name) return;
+            return {
+              id, name,
+              category: String(item.Category || item.category || ''),
+              owner_name: String(item.Owner || item.owner_name || ''),
+              phone: String(item.Phone || item.phone || ''),
+              zone: String(item.Zone || item.zone || ''),
+              area: String(item.Area || item.area || ''),
+              address: String(item.Address || item.address || ''),
+              map_link: String(item['Map Link'] || item.map_link || ''),
+              brand_id: String(item['Brand ID'] || item.Brand_ID || item.brand_id || ''),
+              is_active: true
+            };
+          }).filter(Boolean);
 
-          const storeObj = {
-            id,
-            name,
-            category: String(item.Category || item.category || ''),
-            owner_name: String(item.Owner || item.owner_name || ''),
-            phone: String(item.Phone || item.phone || ''),
-            zone: String(item.Zone || item.zone || ''),
-            area: String(item.Area || item.area || ''),
-            address: String(item.Address || item.address || ''),
-            map_link: String(item['Map Link'] || item.map_link || ''),
-            is_active: true
-          };
-
-          if (existingIds.has(id)) {
-            duplicates.push(`${id} (${name})`);
-          } else {
-            toAdd.push(storeObj);
+          if (toProcess.length > 0) {
+            await onBulkAdd(toProcess);
+            onNotify?.('success', `Synchronized ${toProcess.length} stores (Updated & Added)`);
           }
-        });
-
-        if (toAdd.length > 0) {
-          await onBulkAdd(toAdd);
-          const skipped = duplicates.length > 0 ? ` (${duplicates.length} duplicates skipped)` : '';
-          onNotify?.('success', `Imported ${toAdd.length} new stores${skipped}`);
-        } else if (duplicates.length > 0) {
-          onNotify?.('error', `No new stores added — all ${duplicates.length} already exist.`);
         }
       } catch (err) {
-        if (import.meta.env.DEV) console.error('Import failed:', err);
-        onNotify?.('error', 'Failed to parse the Excel file. Please check the format.');
+        onNotify?.('error', 'Failed to parse the Excel file.');
       } finally {
         setIsImporting(false);
         e.target.value = '';
@@ -96,53 +118,43 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        ID: 'REST-001',
-        Name: 'The Burger Joint',
-        Category: 'Burgers',
-        Owner: 'John Doe',
-        Phone: '+9647800000000',
-        Zone: 'Baghdad',
-        Area: 'Mansour',
-        Address: 'Mansour Main St',
+        ID: 'ST-1001', Name: 'Sample Restaurant', Category: 'Restaurant',
+        Brand_ID: 'BRAND-A', Owner: 'John Smith', Phone: '+9647500000000', 
+        Zone: 'Mosul', Area: 'Al-Zuhour', Address: 'Main Street - Near University', 
         'Map Link': 'https://maps.google.com/...'
       },
       {
-        ID: 'REST-002',
-        Name: 'Pizza Palace',
-        Category: 'Pizza',
-        Owner: 'Jane Smith',
-        Phone: '+9647700000000',
-        Zone: 'Baghdad',
-        Area: 'Karrada',
-        Address: 'Al-Hurriya St',
+        ID: 'ST-1002', Name: 'Daily Goods Market', Category: 'Groceries',
+        Brand_ID: 'BRAND-B', Owner: 'Ahmad Khalil', Phone: '+9647700000000', 
+        Zone: 'Baghdad', Area: 'Mansour', Address: '14 Ramadan St', 
         'Map Link': 'https://maps.google.com/...'
       }
     ];
-
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "StoresTemplate");
-    XLSX.writeFile(wb, "Restaurant_Upload_Template.xlsx");
+    
+    // v2.0 - Indestructible Download Logic
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const uri = 'data:application/octet-stream;base64,' + wbout; // Generic MIME to force download name
+    const a = document.createElement('a');
+    a.style.position = 'fixed';
+    a.style.top = '-100px';
+    a.style.left = '-100px';
+    a.style.visibility = 'hidden';
+    a.href = uri;
+    a.download = 'Restaurant_Upload_Template.xlsx';
+    a.target = '_blank'; // Fallback for some browsers
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Duplicate check now handled in App.jsx via onAddStore
     onAddStore(newStore);
-    setNewStore({ id: '', name: '', category: '', owner_name: '', phone: '', zone: '', area: '', address: '', map_link: '' });
+    setNewStore({ id: '', name: '', category: '', owner_name: '', phone: '', zone: '', area: '', address: '', map_link: '', brand_id: '' });
     setIsModalOpen(false);
-  };
-
-  const handleUpdate = (e) => {
-    e.preventDefault();
-    onUpdateStore(editingStore.id, editingStore);
-    setIsEditModalOpen(false);
-    setEditingStore(null);
-  };
-
-  const openEditModal = (store) => {
-    setEditingStore(store);
-    setIsEditModalOpen(true);
   };
 
   return (
@@ -154,120 +166,197 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            style={{ width: '100%' }}
           >
-            <div className="section-header" style={{ marginBottom: '2rem' }}>
-              <div>
-                <h2 className="gradient-text">Restaurant Directory</h2>
-                <p className="stat-label">Manage your partner stores and details</p>
+            <div className="directory-header">
+              <div className="title-group">
+                <h2 className="gradient-text">Restaurant Registry</h2>
+                <p className="stat-label">Manage active accounts and operational snapshots</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button className="btn-secondary" onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FileDown size={18} /> Template
+              
+              <div className="header-actions">
+                <button className="btn-secondary sm" onClick={handleDownloadTemplate}>
+                  <FileDown size={14} /> <span className="desktop-only text-sm">Template</span>
                 </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" />
-                <button className="btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={isImporting} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {isImporting ? <Loader2 size={18} className="animate-spin" /> : <FileUp size={18} />} Import
+                <button className="btn-secondary sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+                  {isImporting ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />} <span className="desktop-only text-sm">Import</span>
                 </button>
                 <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-                  <Plus size={18} style={{ marginRight: '8px' }} /> Add Store
+                  <Plus size={16} /> <span className="desktop-only text-sm">Add Store</span>
                 </button>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div className="glass-card" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Search size={20} color="var(--text-dim)" />
+            <div className="filters-grid-v2">
+              <div className="search-wrapper-v3">
+                <Search size={18} className="search-icon" />
                 <input 
                   type="text" 
-                  placeholder="Search stores by ID or name..." 
-                  style={{ border: 'none', boxShadow: 'none', width: '100%', fontSize: '1rem', padding: '0.5rem 0', background: 'transparent', outline: 'none', color: 'var(--text-primary)' }}
+                  placeholder="ID, name, or phone..." 
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
               
-              <select 
-                className="glass-card" 
-                style={{ padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '14px', minWidth: '160px', background: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                value={filterCategory}
-                onChange={e => setFilterCategory(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
-
-              <select 
-                className="glass-card" 
-                style={{ padding: '0.75rem 1rem', border: '1px solid var(--border-color)', borderRadius: '14px', minWidth: '160px', background: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                value={filterZone}
-                onChange={e => setFilterZone(e.target.value)}
-              >
-                <option value="">All Zones</option>
-                {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
-              </select>
+              <div className="filter-group-v2">
+                <div className="filter-pill-v2">
+                  <Globe size={14} />
+                  <select value={filterZone} onChange={(e) => setFilterZone(e.target.value)}>
+                    <option value="">All Zones</option>
+                    {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
+                  </select>
+                </div>
+                <div className="filter-pill-v2">
+                  <Layers size={14} />
+                  <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                    <option value="">All Categories</option>
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <button className="btn-icon-v2" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+                  {viewMode === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
+                </button>
+              </div>
             </div>
 
-            <div className="glass-card" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--border-color)' }}>
+            <div className="content-area">
               {filteredStores.length > 0 ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--border-color)', background: 'var(--surface-hover)' }}>
-                      <th style={{ padding: '16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>ID</th>
-                      <th style={{ padding: '16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Store & Category</th>
-                      <th style={{ padding: '16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Owner Info</th>
-                      <th style={{ padding: '16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Status</th>
-                      <th style={{ padding: '16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody style={{ fontSize: '0.875rem' }}>
+                <>
+                  <div className="desktop-only glass-card-table" style={{ overflowX: 'auto' }}>
+                    <table className="premium-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '120px' }}>Store ID</th>
+                          <th>Store Name</th>
+                          <th>Category</th>
+                          <th>Manager Info</th>
+                          <th style={{ textAlign: 'center', width: '220px' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedStores.map((store) => (
+                          <tr key={store.id} className="premium-row">
+                            <td className="id-cell">
+                              <div className="id-content">
+                                <div className={`status-dot-v3 ${store.is_active ? 'active' : 'inactive'}`} title={store.is_active ? 'Active' : 'Closed'}></div>
+                                <span>#{store.id}</span>
+                                <button className="copy-btn-subtle" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(store.id); }} title="Copy ID">
+                                  <Copy size={12} />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="name-cell" onClick={() => onSelectStore(store.id)}>
+                              <div className="name-content">
+                                <span className="main-name">{store.name}</span>
+                                <button className="copy-btn-subtle" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(store.name); }} title="Copy Name">
+                                  <Copy size={12} />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="category-cell">
+                              <span className="category-tag">
+                                <Layers size={12} />
+                                {store.category}
+                              </span>
+                            </td>
+                            <td className="manager-cell">
+                              <div className="manager-info-v2">
+                                <span className="manager-name">{store.owner_name || 'No Manager Name'}</span>
+                                <div className="manager-phone-row">
+                                  <Smartphone size={10} style={{ opacity: 0.6 }} />
+                                  <span className="manager-phone-sub">{store.phone}</span>
+                                  <button 
+                                    className="copy-btn-subtle" 
+                                    onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(store.phone); onNotify?.('success', 'Phone copied'); }}
+                                    title="Copy Phone"
+                                  >
+                                    <Copy size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="actions-cell">
+                              <div className="action-group-h">
+                                <button 
+                                  className="action-btn-v3 profile" 
+                                  onClick={() => onSelectStore(store.id)}
+                                  title="View Profile"
+                                >
+                                  <User size={16} />
+                                </button>
+                                <a 
+                                  href={`https://wa.me/${store.phone?.replace(/\D/g, '')}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="action-btn-v3 whatsapp"
+                                  title="WhatsApp Contact"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MessageCircle size={16} />
+                                </a>
+                                <button 
+                                  className="action-btn-v3 log" 
+                                  onClick={(e) => { e.stopPropagation(); onQuickLog(store); }}
+                                  title="Register Log"
+                                >
+                                  <Activity size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mobile-only cards-list">
                     {filteredStores.map((store) => (
-                      <tr key={store.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                        <td style={{ padding: '16px', fontWeight: 700, color: 'var(--text-dim)', fontFamily: 'monospace' }}>#{store.id}</td>
-                        <td style={{ padding: '16px' }}>
-                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>{store.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Layers size={10} /> {store.category}
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px' }}>
-                          <div style={{ fontWeight: 600 }}>{store.owner_name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{store.phone}</div>
-                        </td>
-                        <td style={{ padding: '16px' }}>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={store.id} 
+                        className="glass-card mobile-store-card"
+                        onClick={() => onSelectStore(store.id)}
+                      >
+                        <div className="card-header">
+                          <span className="card-id">#{store.id}</span>
                           <span className={`badge ${store.is_active ? 'badge-success' : 'badge-danger'}`}>
                             {store.is_active ? 'Active' : 'Inactive'}
                           </span>
-                        </td>
-                        <td style={{ padding: '16px' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button className="btn-secondary" style={{ padding: '8px' }} aria-label={`Edit ${store.name}`} onClick={() => openEditModal(store)}>
-                              <Pencil size={18} />
-                            </button>
-                            <button className="btn-primary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }} aria-label={`Open dashboard for ${store.name}`} onClick={() => onSelectStore(store.id)}>
-                              <Info size={16} /> Open Dashboard
-                            </button>
+                        </div>
+                        <div className="card-body">
+                          <h3 className="card-title">{store.name}</h3>
+                          <div className="card-meta">
+                            <span className="category-tag"><Layers size={12} /> {store.category}</span>
+                            <span className="manager-phone"><Smartphone size={12} /> {store.phone}</span>
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                        <div className="card-footer">
+                           <span className="view-profile-hint">View Partner Profile</span>
+                           <span className="open-arrow"><ExternalLink size={16} /></span>
+                        </div>
+                      </motion.div>
                     ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                  <div style={{ display: 'inline-flex', padding: '1.5rem', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary-color)', marginBottom: '1.5rem' }}>
-                    <Store size={48} />
                   </div>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No restaurants found</h3>
-                  <p style={{ color: 'var(--text-dim)', marginBottom: '1.5rem' }}>
-                    {debouncedSearch || filterCategory || filterZone 
-                      ? "Try adjusting your filters to find what you're looking for." 
-                      : "Start building your registry by adding your first partner restaurant."}
-                  </p>
-                  {!debouncedSearch && !filterCategory && !filterZone && (
-                     <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-                        <Plus size={18} style={{ marginRight: '8px' }} /> Add Your First Store
-                     </button>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '1.25rem', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                      <button className="btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 14px', opacity: currentPage === 1 ? 0.4 : 1 }}>←</button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button key={p} onClick={() => setCurrentPage(p)} style={{ padding: '6px 12px', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', background: p === currentPage ? 'var(--primary-color)' : 'var(--surface-hover)', color: p === currentPage ? 'white' : 'var(--text-secondary)', border: '1px solid var(--border-color)', cursor: 'pointer' }}>{p}</button>
+                      ))}
+                      <button className="btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 14px', opacity: currentPage === totalPages ? 0.4 : 1 }}>→</button>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginLeft: '8px' }}>{filteredStores.length} total</span>
+                    </div>
                   )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon"><Store size={48} /></div>
+                  <h3>No restaurants found</h3>
+                  <p>Try adjusting your search or filters.</p>
                 </div>
               )}
             </div>
@@ -278,21 +367,19 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
+            style={{ width: '100%' }}
           >
-            {stores.find(s => s.id === selectedStoreId) ? (
-              <StoreProfile 
-                store={stores.find(s => s.id === selectedStoreId)} 
-                activities={activities} 
-                outcomes={outcomes} 
-                onClose={() => onSelectStore(null)}
-                onUpdate={onUpdateStore}
-              />
-            ) : (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <Loader2 size={32} className="animate-spin" />
-                <p>Loading profile...</p>
-              </div>
-            )}
+            <StoreProfile 
+              store={stores.find(s => s.id === selectedStoreId)} 
+              activities={activities} 
+              outcomes={outcomes} 
+              closureReasons={closureReasons}
+              onClose={() => onSelectStore(null)}
+              onUpdate={onUpdateStore}
+              onDeleteStore={onDeleteStore}
+              onAddActivity={onAddActivity}
+              onNotify={onNotify}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -302,9 +389,10 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
           <motion.div className="glass-card modal-content" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Add New Restaurant</h3>
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div className="form-group"><label>Store ID</label><input required placeholder="REST-101" value={newStore.id} onChange={e => setNewStore({...newStore, id: e.target.value})} /></div>
                 <div className="form-group"><label>Store Name</label><input required placeholder="Name" value={newStore.name} onChange={e => setNewStore({...newStore, name: e.target.value})} /></div>
+                <div className="form-group"><label>Brand ID</label><input placeholder="BRAND-01" value={newStore.brand_id} onChange={e => setNewStore({...newStore, brand_id: e.target.value})} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
@@ -336,36 +424,45 @@ const StoreList = ({ stores, activities, outcomes, categories, zones, selectedSt
         </div>
       )}
 
-      {isEditModalOpen && editingStore && (
-        <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
-          <motion.div className="glass-card modal-content" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.25rem' }}>Edit: {editingStore.name}</h3>
-              <button onClick={() => setIsEditModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleUpdate}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group"><label>Store ID (Read-only)</label><input disabled value={editingStore.id} /></div>
-                <div className="form-group"><label>Store Name</label><input required value={editingStore.name} onChange={e => setEditingStore({...editingStore, name: e.target.value})} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label>Category</label>
-                  <select value={editingStore.category} onChange={e => setEditingStore({...editingStore, category: e.target.value})}>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group"><label>Owner Name</label><input value={editingStore.owner_name} onChange={e => setEditingStore({...editingStore, owner_name: e.target.value})} /></div>
-              </div>
-              <div className="form-group"><label>Physical Address</label><textarea rows="1" value={editingStore.address} onChange={e => setEditingStore({...editingStore, address: e.target.value})} /></div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn-primary" style={{ flexGrow: 1 }}>Update Details</button>
-                <button type="button" className="btn-secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+      <style>{`
+        .directory-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .header-actions { display: flex; gap: 0.75rem; }
+        .filters-grid-v2 { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .search-wrapper-v3 { flex: 1; min-width: 300px; position: relative; }
+        .search-wrapper-v3 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+        .search-wrapper-v3 input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border-radius: 14px; border: 1px solid var(--border-color); background: var(--surface-color); font-weight: 600; outline: none; transition: 0.2s; }
+        .search-wrapper-v3 input:focus { border-color: var(--primary-color); background: white; box-shadow: var(--shadow-sm); }
+        
+        .filter-group-v2 { display: flex; gap: 0.75rem; }
+        .filter-pill-v2 { display: flex; align-items: center; gap: 8px; background: var(--surface-color); border: 1px solid var(--border-color); padding: 2px 12px; border-radius: 12px; }
+        .filter-pill-v2 select { border: none; background: transparent; font-weight: 700; color: var(--text-primary); outline: none; padding: 10px 0; }
+        .btn-icon-v2 { background: var(--surface-color); border: 1px solid var(--border-color); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); transition: 0.2s; }
+        .btn-icon-v2:hover { background: white; border-color: var(--primary-color); color: var(--primary-color); }
+
+        .manager-info-v2 { display: flex; flex-direction: column; gap: 2px; }
+        .manager-name { font-weight: 800; color: var(--text-primary); font-size: 0.95rem; }
+        .manager-phone-row { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+        .manager-phone-sub { font-size: 0.8rem; font-weight: 600; }
+
+        .action-group-h { display: flex; gap: 8px; justify-content: center; }
+        .action-btn-v3 { width: 38px; height: 38px; border-radius: 10px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); background: var(--surface-hover); color: var(--text-dim); text-decoration: none; }
+        
+        .action-btn-v3.profile:hover { background: var(--primary-light); color: var(--primary-color); transform: translateY(-2px); }
+        .action-btn-v3.whatsapp:hover { background: #dcfce7; color: #16a34a; transform: translateY(-2px); }
+        .action-btn-v3.log:hover { background: #ede9fe; color: #7c3aed; transform: translateY(-2px); }
+        .action-btn-v3:active { transform: scale(0.9); }
+
+        .desktop-only { display: flex; }
+        .mobile-only { display: none; }
+
+        @media (max-width: 768px) {
+          .directory-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+          .header-actions { width: 100%; justify-content: space-between; }
+          .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; }
+          .search-wrapper-v3 { min-width: 100%; }
+        }
+      `}</style>
     </div>
   );
 };

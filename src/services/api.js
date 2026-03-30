@@ -31,9 +31,25 @@ export const storeService = {
     if (error) throw error;
     return data[0];
   },
+  async getDeleted() {
+    const { data, error } = await supabase.from('stores').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  async softDelete(id) {
+    const { error } = await supabase.from('stores').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+  async restore(id) {
+    const { error } = await supabase.from('stores').update({ deleted_at: null }).eq('id', id);
+    if (error) throw error;
+    return true;
+  },
   async delete(id) {
     const { error } = await supabase.from('stores').delete().eq('id', id);
     if (error) throw error;
+    return true;
   },
   async bulkCreate(storesList) {
     const { data, error } = await supabase.from('stores').upsert(storesList).select();
@@ -120,6 +136,21 @@ export const settingsService = {
   async deleteCategory(id) {
     const { error } = await supabase.from('store_categories').delete().eq('id', id);
     if (error) throw error;
+  },
+  async getClosureReasons() {
+    const { data, error } = await supabase.from('closure_reasons').select('*').order('name');
+    if (error) throw error;
+    return data;
+  },
+  async createClosureReason(name) {
+    const { data, error } = await supabase.from('closure_reasons').insert([{ name }]).select();
+    if (error) throw error;
+    return data[0];
+  },
+  async deleteClosureReason(id) {
+    const { error } = await supabase.from('closure_reasons').delete().eq('id', id);
+    if (error) throw error;
+    return true;
   }
 };
 
