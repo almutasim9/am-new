@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { ClipboardList, Calendar, CheckCircle, Clock, FileDown, FilePlus } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { ClipboardList, Calendar, CheckCircle, Clock, FileDown, FilePlus, X, Download } from 'lucide-react';
+import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import ActivityForm from './ActivityForm';
@@ -9,6 +9,9 @@ import ActivityForm from './ActivityForm';
 const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveActivity, onBulkResolve }) => {
   const PAGE_SIZE = 20;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [logSearchTerm, setLogSearchTerm] = useState('');
   const [logStatusFilter, setLogStatusFilter] = useState('');
@@ -36,8 +39,50 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
     setSelectedIds([]);
   };
 
+  // Quick preset helpers
+  const applyPreset = (preset) => {
+    const now = new Date();
+    const fmt = (d) => format(d, 'yyyy-MM-dd');
+    const presets = {
+      today:      { from: fmt(now),                          to: fmt(now) },
+      week:       { from: fmt(startOfWeek(now, { weekStartsOn: 0 })), to: fmt(endOfWeek(now, { weekStartsOn: 0 })) },
+      month:      { from: fmt(startOfMonth(now)),            to: fmt(endOfMonth(now)) },
+      lastMonth:  { from: fmt(startOfMonth(subMonths(now, 1))), to: fmt(endOfMonth(subMonths(now, 1))) },
+      all:        { from: '', to: '' },
+    };
+    const p = presets[preset];
+    setExportFrom(p.from);
+    setExportTo(p.to);
+  };
+
+  // Count how many activities match the current export range
+  const exportPreviewCount = useMemo(() => {
+    if (!exportFrom && !exportTo) return activities.length;
+    return activities.filter(act => {
+      const d = new Date(act.created_at);
+      const from = exportFrom ? startOfDay(new Date(exportFrom)) : null;
+      const to   = exportTo   ? endOfDay(new Date(exportTo))     : null;
+      if (from && to) return isWithinInterval(d, { start: from, end: to });
+      if (from) return d >= from;
+      if (to)   return d <= to;
+      return true;
+    }).length;
+  }, [activities, exportFrom, exportTo]);
+
   const handleExport = () => {
-    const exportData = activities.map(act => ({
+    const filtered = (!exportFrom && !exportTo)
+      ? activities
+      : activities.filter(act => {
+          const d = new Date(act.created_at);
+          const from = exportFrom ? startOfDay(new Date(exportFrom)) : null;
+          const to   = exportTo   ? endOfDay(new Date(exportTo))     : null;
+          if (from && to) return isWithinInterval(d, { start: from, end: to });
+          if (from) return d >= from;
+          if (to)   return d <= to;
+          return true;
+        });
+
+    const exportData = filtered.map(act => ({
       'Date': format(new Date(act.created_at), 'yyyy-MM-dd HH:mm'),
       'Store': getStoreName(act.store_id),
       'Status': getOutcomeName(act.outcome_id),
@@ -49,9 +94,11 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'DailyActivities');
-    
-    // Using Base64 Data URI for maximum compatibility and to force correct filename/extension
-    const fileName = `DailyLog_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+
+    const rangeLabel = exportFrom || exportTo
+      ? `_${exportFrom || 'start'}_to_${exportTo || 'end'}`
+      : '_All';
+    const fileName = `DailyLog${rangeLabel}.xlsx`;
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
     const uri = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + wbout;
     const a = document.createElement('a');
@@ -61,6 +108,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setIsExportOpen(false);
   };
 
   const filteredLog = useMemo(() => {
@@ -90,7 +138,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
           <p className="stat-label">Manage who you contacted and what was achieved</p>
         </div>
         <div className="header-actions">
-          <button className="btn-secondary" onClick={handleExport}>
+          <button className="btn-secondary" onClick={() => setIsExportOpen(true)}>
             <FileDown size={14} /> <span className="desktop-only text-sm">Export</span>
           </button>
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
@@ -303,7 +351,114 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
         )}
       </AnimatePresence>
 
-      <ActivityForm 
+      {/* ── Export Date Range Modal ── */}
+      <AnimatePresence>
+        {isExportOpen && (
+          <div className="modal-overlay" onClick={() => setIsExportOpen(false)}>
+            <motion.div
+              className="glass-card export-modal"
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.92, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 16 }}
+            >
+              {/* Header */}
+              <div className="export-modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px' }}>
+                    <FileDown size={18} color="var(--primary-color)" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>تصدير السجلات</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-dim)' }}>حدد المدة الزمنية للتصدير</p>
+                  </div>
+                </div>
+                <button className="export-close-btn" onClick={() => setIsExportOpen(false)} aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="export-presets">
+                {[
+                  { key: 'today',     label: 'اليوم' },
+                  { key: 'week',      label: 'هذا الأسبوع' },
+                  { key: 'month',     label: 'هذا الشهر' },
+                  { key: 'lastMonth', label: 'الشهر الماضي' },
+                  { key: 'all',       label: 'الكل' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    className="preset-chip"
+                    onClick={() => applyPreset(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Date Inputs */}
+              <div className="export-date-row">
+                <div className="export-date-group">
+                  <label>من تاريخ</label>
+                  <input
+                    type="date"
+                    value={exportFrom}
+                    onChange={e => setExportFrom(e.target.value)}
+                  />
+                </div>
+                <div className="export-date-sep">—</div>
+                <div className="export-date-group">
+                  <label>إلى تاريخ</label>
+                  <input
+                    type="date"
+                    value={exportTo}
+                    onChange={e => setExportTo(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Preview count */}
+              <div className="export-preview">
+                <span className="export-count">{exportPreviewCount}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  {exportPreviewCount === 1 ? 'نشاط سيتم تصديره' : 'نشاط سيتم تصديره'}
+                </span>
+                {(exportFrom || exportTo) && (
+                  <button
+                    className="clear-range-btn"
+                    onClick={() => { setExportFrom(''); setExportTo(''); }}
+                  >
+                    مسح المدة
+                  </button>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="export-actions">
+                <button
+                  className="btn-primary"
+                  onClick={handleExport}
+                  disabled={exportPreviewCount === 0}
+                  style={{ flex: 2, justifyContent: 'center', gap: '8px', opacity: exportPreviewCount === 0 ? 0.5 : 1 }}
+                >
+                  <Download size={16} />
+                  تصدير Excel
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setIsExportOpen(false)}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ActivityForm
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={(data) => {
@@ -316,6 +471,107 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
       />
 
       <style>{`
+        /* ── Export Modal ── */
+        .export-modal {
+          width: 90%; max-width: 480px;
+          padding: 1.75rem;
+          border-radius: 24px;
+          background: var(--surface-color);
+          border: 1px solid var(--border-color);
+        }
+        .export-modal-header {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 1.5rem;
+        }
+        .export-close-btn {
+          width: 36px; height: 36px; border-radius: 10px;
+          background: var(--surface-hover); color: var(--text-secondary);
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid var(--border-color); cursor: pointer; transition: 0.2s;
+          flex-shrink: 0;
+        }
+        .export-close-btn:hover { background: #fee2e2; color: var(--danger); }
+
+        .export-presets {
+          display: flex; flex-wrap: wrap; gap: 8px;
+          margin-bottom: 1.5rem;
+        }
+        .preset-chip {
+          padding: 8px 16px; border-radius: 50px;
+          background: var(--surface-hover);
+          border: 1px solid var(--border-color);
+          font-size: 0.8rem; font-weight: 600;
+          color: var(--text-secondary); cursor: pointer;
+          transition: all 0.2s; min-height: 36px;
+        }
+        .preset-chip:hover {
+          background: var(--primary-light);
+          border-color: var(--primary-color);
+          color: var(--primary-color);
+        }
+
+        .export-date-row {
+          display: flex; align-items: center; gap: 12px;
+          margin-bottom: 1.25rem;
+        }
+        .export-date-group {
+          flex: 1; display: flex; flex-direction: column; gap: 6px;
+        }
+        .export-date-group label {
+          font-size: 0.75rem; font-weight: 700;
+          color: var(--text-secondary); letter-spacing: 0.03em;
+        }
+        .export-date-group input[type="date"] {
+          width: 100%; padding: 0.7rem 0.875rem;
+          border-radius: 12px; font-size: 0.875rem;
+          border: 1px solid var(--border-color);
+          background: var(--surface-hover);
+          color: var(--text-primary);
+        }
+        .export-date-group input[type="date"]:focus {
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+          outline: none;
+        }
+        .export-date-sep {
+          color: var(--text-dim); font-weight: 700; margin-top: 22px;
+          flex-shrink: 0;
+        }
+
+        .export-preview {
+          display: flex; align-items: center; gap: 10px;
+          padding: 0.875rem 1rem;
+          background: var(--primary-light);
+          border: 1px solid rgba(79,70,229,0.15);
+          border-radius: 12px;
+          margin-bottom: 1.25rem;
+        }
+        .export-count {
+          font-size: 1.4rem; font-weight: 800;
+          color: var(--primary-color); line-height: 1;
+        }
+        .clear-range-btn {
+          margin-left: auto; font-size: 0.75rem; font-weight: 600;
+          color: var(--text-dim); background: none; border: none;
+          cursor: pointer; text-decoration: underline; padding: 4px;
+          min-height: unset;
+        }
+        .clear-range-btn:hover { color: var(--danger); }
+
+        .export-actions {
+          display: flex; gap: 10px;
+        }
+
+        @media (max-width: 480px) {
+          .export-modal { padding: 1.25rem; }
+          .export-date-row { flex-direction: column; gap: 1rem; }
+          .export-date-sep { display: none; }
+          .export-actions { flex-direction: column-reverse; }
+          .export-actions .btn-primary,
+          .export-actions .btn-secondary { flex: unset; width: 100%; }
+        }
+
+        /* ── Activity Log ── */
         .activity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
         .header-actions { display: flex; gap: 0.75rem; }
         .filters-grid { display: grid; grid-template-columns: 1fr 200px; gap: 1rem; margin-bottom: 1.5rem; }
