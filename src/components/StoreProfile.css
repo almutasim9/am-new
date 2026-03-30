@@ -145,6 +145,19 @@
   .profile-header-v3 { padding: 1rem; }
 }
 
+/* Touch target improvements */
+.back-circle-btn,
+.btn-cancel-edit,
+.s-actions a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-whatsapp-hero,
+.btn-edit-toggle {
+  min-height: 48px;
+}
+
 /* Tab nav for Call History */
 .profile-tab-nav { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--surface-hover); padding: 4px; border-radius: 12px; }
 .profile-tab-btn {

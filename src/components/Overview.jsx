@@ -108,7 +108,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
         flexWrap: 'wrap', gap: '1rem'
       }}>
         <div>
-          <h2 className="gradient-text" style={{ fontSize: '1.75rem', marginBottom: '4px' }}>
+          <h2 className="gradient-text" style={{ fontSize: 'clamp(1.3rem, 5vw, 1.75rem)', marginBottom: '4px' }}>
             {getGreeting()} 👋
           </h2>
           <p className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -423,9 +423,14 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
         }
 
         @media (max-width: 768px) {
-          .stats-grid { grid-template-columns: 1fr; }
-          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
-          .bottom-row-grid { grid-template-columns: 1fr; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+          .bottom-row-grid { grid-template-columns: 1fr; gap: 1rem; }
+        }
+
+        @media (max-width: 480px) {
+          .stats-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
         }
       `}</style>
     </div>

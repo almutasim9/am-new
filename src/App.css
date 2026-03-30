@@ -209,7 +209,7 @@
 }
 
 .stat-value {
-  font-size: 2.25rem;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.025em;
@@ -290,9 +290,82 @@
     padding: 1.5rem;
     width: 95%;
   }
-  
+
   .stat-value {
     font-size: 1.75rem;
+  }
+
+  /* Table: horizontal scroll on mobile */
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table th, table td,
+  .premium-table th, .premium-row td {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Toast: full-width at bottom on mobile */
+  .toast {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    font-size: 0.875rem;
+    padding: 0.875rem 1.25rem;
+  }
+
+  /* Section container tighter gap */
+  .section-container {
+    gap: 1rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.4rem;
+  }
+
+  /* Nav links: larger touch target */
+  .nav-link {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-primary, .btn-secondary {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-header .btn-primary,
+  .section-header .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Compact table cells */
+  .premium-table th, .premium-row td {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .glass-card {
+    border-radius: 16px;
+  }
+
+  .section-container {
+    gap: 0.75rem;
   }
 }
 

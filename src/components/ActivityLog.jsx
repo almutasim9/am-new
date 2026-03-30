@@ -347,6 +347,14 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
           .bulk-actions-bar { width: 90%; justify-content: space-between; padding: 0.75rem 1rem; bottom: 1rem; }
           .bulk-actions-bar .selected-count { font-size: 0.8rem; }
           .action-buttons { display: flex; gap: 8px; }
+          .log-card { padding: 1rem; }
+          .card-main .store-name { font-size: 1rem; }
+        }
+
+        @media (max-width: 480px) {
+          .card-bottom { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+          .card-bottom .btn-primary { width: 100%; justify-content: center; }
+          .bulk-actions-bar { bottom: 0.75rem; left: 0.75rem; right: 0.75rem; transform: none; width: auto; border-radius: 16px; }
         }
       `}</style>
     </div>

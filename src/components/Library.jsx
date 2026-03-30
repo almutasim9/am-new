@@ -70,20 +70,20 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
       )}
 
       <div style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', maxWidth: '500px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-          <input 
-            type="text" 
-            placeholder="البحث في الروابط..." 
+        <div style={{ position: 'relative', maxWidth: '500px', width: '100%' }}>
+          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="البحث في الروابط..."
             className="glass-card"
-            style={{ padding: '0.75rem 1rem 0.75rem 2.5rem', width: '100%', border: '1px solid var(--border-color)', borderRadius: '14px' }}
+            style={{ padding: '0.875rem 1rem 0.875rem 2.5rem', width: '100%', border: '1px solid var(--border-color)', borderRadius: '14px', minHeight: '44px' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '1.25rem' }}>
         {filteredLinks.map((link) => (
           <motion.div 
             key={link.id} 
@@ -243,11 +243,19 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
         )}
       </div>
 
+      <style>{`
+        @media (max-width: 768px) {
+          .library-modal-overlay { align-items: flex-end !important; padding: 0 !important; }
+          .library-modal-box { border-radius: 20px 20px 0 0 !important; max-width: 100% !important; width: 100% !important; padding: 1.75rem !important; max-height: 90vh; overflow-y: auto; }
+          .library-search-wrap { max-width: 100% !important; }
+        }
+      `}</style>
+
       <AnimatePresence>
         {isModalOpen && (
-          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-            <motion.div 
-              className="glass-card modal-content" 
+          <div className="modal-overlay library-modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <motion.div
+              className="glass-card modal-content library-modal-box"
               onClick={e => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}

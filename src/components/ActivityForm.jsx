@@ -283,10 +283,10 @@ const ActivityForm = ({
           .header-info p { font-size: 0.7rem; color: #64748b; margin: 0; }
 
           .close-btn-circle {
-            width: 32px; height: 32px; border-radius: 8px;
+            width: 44px; height: 44px; border-radius: 10px;
             border: none; background: #f8fafc; color: #94a3b8;
             display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s; cursor: pointer;
+            transition: all 0.2s; cursor: pointer; flex-shrink: 0;
           }
           .close-btn-circle:hover { background: #fee2e2; color: #ef4444; }
 
@@ -328,11 +328,12 @@ const ActivityForm = ({
           }
 
           .outcome-chip {
-            white-space: nowrap; padding: 10px 16px;
+            white-space: nowrap; padding: 12px 16px;
             border-radius: 12px; border: 1px solid #e2e8f0;
             background: #f8fafc; font-size: 0.85rem; font-weight: 700;
             color: #64748b; transition: all 0.2s;
-            cursor: pointer;
+            cursor: pointer; min-height: 44px;
+            display: inline-flex; align-items: center; gap: 6px;
           }
           .outcome-chip.active {
             background: var(--primary-color); color: white;
@@ -344,9 +345,11 @@ const ActivityForm = ({
             margin-bottom: 1rem;
           }
           .template-btn {
-            padding: 8px; font-size: 0.75rem; font-weight: 700;
+            padding: 10px 8px; font-size: 0.75rem; font-weight: 700;
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;
             color: #475569; transition: all 0.2s; cursor: pointer;
+            min-height: 44px; display: flex; align-items: center; justify-content: center;
+            text-align: center; line-height: 1.3;
           }
           .template-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
@@ -375,11 +378,19 @@ const ActivityForm = ({
 
           @media (max-width: 768px) {
             .activity-form-overlay { padding: 0; align-items: flex-end; }
-            .activity-form-container { 
+            .activity-form-container {
               max-width: 100%; border-radius: 20px 20px 0 0;
               max-height: 90vh;
             }
             .quick-templates-grid { grid-template-columns: repeat(2, 1fr); }
+            .form-content-scrollable { padding: 1.25rem; padding-bottom: 100px; }
+            .form-header-premium { padding: 1rem 1.25rem; }
+          }
+
+          @media (max-width: 480px) {
+            .quick-templates-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+            .follow-up-group { flex-direction: column; gap: 1rem; }
+            .btn-submit-activity { font-size: 0.95rem; padding: 0.875rem; }
           }
         `}</style>
       </div>

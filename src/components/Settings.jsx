@@ -197,10 +197,10 @@ const Settings = ({
       </div>
 
       <style>{`
-        .settings-grid { 
-          display: grid; 
-          grid-template-columns: minmax(300px, 1fr) 1.5fr; 
-          gap: 2rem; 
+        .settings-grid {
+          display: grid;
+          grid-template-columns: minmax(min(300px, 100%), 1fr) 1.5fr;
+          gap: 2rem;
         }
 
         .settings-section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; color: var(--primary-color); }
@@ -213,7 +213,7 @@ const Settings = ({
         .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--surface-hover); border-radius: 12px; border: 1px solid var(--border-color); transition: 0.2s; }
         .settings-item:hover { border-color: var(--primary-light); background: white; }
         .settings-item span { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
-        .delete-btn { color: var(--text-dim); border: none; background: transparent; cursor: pointer; padding: 6px; border-radius: 8px; transition: 0.2s; }
+        .delete-btn { color: var(--text-dim); border: none; background: transparent; cursor: pointer; padding: 10px; border-radius: 8px; transition: 0.2s; min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center; }
         .delete-btn:hover { color: var(--danger); background: #fee2e2; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

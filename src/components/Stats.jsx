@@ -190,83 +190,99 @@ const Stats = ({ calls, outcomes, stores }) => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', gap: '1.5rem' }}>
+      <style>{`
+        .stats-chart-card { padding: 1.5rem; }
+        .stats-chart-inner { height: 300px; }
+        @media (max-width: 768px) {
+          .stats-chart-inner { height: 240px; }
+          .stats-chart-card { padding: 1rem; }
+        }
+        @media (max-width: 480px) {
+          .stats-chart-inner { height: 200px; }
+        }
+      `}</style>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))', gap: '1.5rem' }}>
         <motion.div
-          className="glass-card"
-          style={{ padding: '1.5rem', height: '350px' }}
+          className="glass-card stats-chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>Status Distribution</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <PieChart>
-              <Pie data={outcomeData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                {outcomeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="stats-chart-inner">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={outcomeData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                  {outcomeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </motion.div>
 
-        <motion.div 
-          className="glass-card" 
-          style={{ padding: '1.5rem', height: '350px' }}
+        <motion.div
+          className="glass-card stats-chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>Work Progression</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={statusData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip cursor={{fill: 'var(--surface-hover)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
-              <Bar dataKey="value" fill="var(--primary-color)" radius={[6, 6, 0, 0]} barSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="stats-chart-inner">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={statusData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip cursor={{fill: 'var(--surface-hover)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
+                <Bar dataKey="value" fill="var(--primary-color)" radius={[6, 6, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </motion.div>
 
-        <motion.div 
-          className="glass-card" 
-          style={{ padding: '1.5rem', height: '350px' }}
+        <motion.div
+          className="glass-card stats-chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
           <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>Zone Distribution</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <PieChart>
-              <Pie data={zoneData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                {zoneData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="stats-chart-inner">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={zoneData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  {zoneData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </motion.div>
 
-        <motion.div 
-          className="glass-card" 
-          style={{ padding: '1.5rem', height: '350px' }}
+        <motion.div
+          className="glass-card stats-chart-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>Category Analysis</h3>
-          <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={categoryData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" hide />
-              <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} />
-              <Tooltip cursor={{fill: 'var(--surface-hover)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
-              <Bar dataKey="value" fill="var(--success)" radius={[0, 6, 6, 0]} barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="stats-chart-inner">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={categoryData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={90} tick={{ fontSize: 12 }} />
+                <Tooltip cursor={{fill: 'var(--surface-hover)'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
+                <Bar dataKey="value" fill="var(--success)" radius={[0, 6, 6, 0]} barSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </motion.div>
       </div>
     </div>

@@ -74,23 +74,44 @@ const TopBar = ({
 
       <style>{`
         @media (max-width: 768px) {
-          .mobile-only.sidebar-toggle { display: flex !important; }
+          .mobile-only.sidebar-toggle { display: flex !important; min-height: 44px; min-width: 44px; }
           .desktop-only { display: none !important; }
           .search-trigger { max-width: none !important; }
+          .topbar-sync-label { display: none !important; }
         }
+        .topbar-bell-btn {
+          padding: 10px;
+          min-height: 44px;
+          min-width: 44px;
+          border-radius: 12px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .topbar-bell-wrap {
+          padding: 10px;
+          border-radius: 12px;
+          background: var(--surface-color);
+          border: 1px solid var(--border-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: var(--shadow-sm);
+        }
+        .topbar-bell-wrap.alert { border-color: #fee2e2; }
       `}</style>
 
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div 
-          style={{ position: 'relative', cursor: 'pointer' }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          className="topbar-bell-btn"
           onClick={() => notifPermission !== 'granted' ? onHandleRequestPermission() : setActiveTab('dashboard')}
+          aria-label="Notifications"
         >
-          <div className="glass-card" style={{ 
-            padding: '10px', 
-            borderRadius: '12px', 
-            border: overdueCount > 0 ? '1px solid #fee2e2' : '1px solid var(--border-color)' 
-          }}>
+          <div className={`topbar-bell-wrap${overdueCount > 0 ? ' alert' : ''}`}>
             {notifPermission === 'granted' ? (
               <Bell size={20} color={overdueCount > 0 ? 'var(--danger)' : 'var(--text-secondary)'} />
             ) : (
@@ -98,58 +119,61 @@ const TopBar = ({
             )}
           </div>
           {overdueCount > 0 && (
-            <span style={{ 
-              position: 'absolute', 
-              top: '-4px', 
-              right: '-4px', 
-              background: 'var(--danger)', 
-              color: 'white', 
-              fontSize: '10px', 
-              fontWeight: 700, 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              border: '2px solid white' 
+            <span style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              background: 'var(--danger)',
+              color: 'white',
+              fontSize: '10px',
+              fontWeight: 700,
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid var(--bg-color)'
             }}>
               {overdueCount}
             </span>
           )}
-        </div>
+        </button>
 
-        <div style={{ 
-          background: 'var(--surface-hover)', 
-          padding: '6px 12px', 
-          borderRadius: '12px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          border: '1px solid var(--border-color)' 
+        <div className="topbar-sync-label" style={{
+          background: 'var(--surface-hover)',
+          padding: '6px 12px',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          border: '1px solid var(--border-color)',
+          height: '44px'
         }}>
-          <div style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            background: 'var(--success)', 
-            boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)' 
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--success)',
+            boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)'
           }}></div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
             Live Sync Active
           </span>
         </div>
-        <div style={{ 
-          width: '44px', 
-          height: '44px', 
-          background: 'linear-gradient(135deg, #4f46e5, #0ea5e9)', 
-          borderRadius: '14px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          color: 'white', 
-          fontWeight: 700, 
-          boxShadow: '0 4px 6px -1px rgb(79 70 229 / 0.3)' 
+
+        <div style={{
+          width: '44px',
+          height: '44px',
+          background: 'linear-gradient(135deg, #4f46e5, #0ea5e9)',
+          borderRadius: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontWeight: 700,
+          boxShadow: '0 4px 6px -1px rgb(79 70 229 / 0.3)',
+          flexShrink: 0
         }}>
           A
         </div>
