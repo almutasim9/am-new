@@ -122,6 +122,29 @@
 .edit-input-minimal { border: none; background: transparent; border-bottom: 1px solid var(--primary-color); font-weight: 700; color: var(--text-primary); outline: none; width: 100%; font-size: 0.875rem; padding: 2px 0; }
 .empty-state-v3 { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); font-weight: 600; text-align: center; gap: 12px; }
 
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  .profile-header-v3 {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  .hero-name { font-size: 1.6rem; }
+  .header-actions { width: 100%; flex-wrap: wrap; }
+  .profile-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .info-fields-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .hardware-controls-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .hero-meta { flex-wrap: wrap; gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  .metrics-row { grid-template-columns: 1fr; }
+  .hardware-controls-grid { grid-template-columns: 1fr; }
+  .profile-header-v3 { padding: 1rem; }
+}
+
 /* Tab nav for Call History */
 .profile-tab-nav { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--surface-hover); padding: 4px; border-radius: 12px; }
 .profile-tab-btn {
