@@ -75,8 +75,7 @@ const StoreList = ({
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
@@ -113,7 +112,7 @@ const StoreList = ({
         e.target.value = '';
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleDownloadTemplate = () => {
@@ -286,16 +285,18 @@ const StoreList = ({
                                 >
                                   <User size={16} />
                                 </button>
-                                <a 
-                                  href={`https://wa.me/${store.phone?.replace(/\D/g, '')}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="action-btn-v3 whatsapp"
-                                  title="WhatsApp Contact"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MessageCircle size={16} />
-                                </a>
+                                {store.phone?.replace(/\D/g, '') ? (
+                                  <a
+                                    href={`https://wa.me/${store.phone.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="action-btn-v3 whatsapp"
+                                    title="WhatsApp Contact"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MessageCircle size={16} />
+                                  </a>
+                                ) : null}
                                 <button 
                                   className="action-btn-v3 log" 
                                   onClick={(e) => { e.stopPropagation(); onQuickLog(store); }}

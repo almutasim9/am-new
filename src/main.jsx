@@ -5,15 +5,41 @@ import AuthGuard from './components/auth/AuthGuard.jsx'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
-// Register PWA service worker
+// Non-blocking PWA update banner — replaces confirm() which freezes the UI
+function showUpdateBanner(onAccept) {
+  const banner = document.createElement('div');
+  banner.id = 'pwa-update-banner';
+  banner.innerHTML = `
+    <div style="
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      background:#1e293b; color:white; padding:12px 20px; border-radius:14px;
+      display:flex; align-items:center; gap:14px; z-index:99999;
+      box-shadow:0 10px 30px rgba(0,0,0,0.3); font-family:inherit; font-size:14px;
+      animation: slideUp 0.3s ease;
+    ">
+      <span>🔄 تحديث جديد متاح</span>
+      <button id="pwa-update-yes" style="
+        background:#4f46e5; color:white; border:none; padding:7px 16px;
+        border-radius:8px; cursor:pointer; font-weight:700; font-size:13px;
+      ">تحديث الآن</button>
+      <button id="pwa-update-no" style="
+        background:rgba(255,255,255,0.1); color:white; border:none; padding:7px 12px;
+        border-radius:8px; cursor:pointer; font-size:13px;
+      ">لاحقاً</button>
+    </div>
+    <style>@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
+  `;
+  document.body.appendChild(banner);
+  document.getElementById('pwa-update-yes').onclick = () => { banner.remove(); onAccept(); };
+  document.getElementById('pwa-update-no').onclick = () => banner.remove();
+}
+
 const updateSW = registerSW({
   onNeedRefresh() {
-    if (confirm('New content available. Reload?')) {
-      updateSW(true)
-    }
+    showUpdateBanner(() => updateSW(true));
   },
   onOfflineReady() {
-    if (import.meta.env.DEV) console.log('App ready to work offline')
+    if (import.meta.env.DEV) console.log('App ready to work offline');
   },
 })
 

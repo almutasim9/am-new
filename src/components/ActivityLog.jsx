@@ -30,7 +30,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   };
 
   const toggleSelectAll = () => {
-    const pendingIds = activities.filter(a => !a.is_resolved).map(a => a.id);
+    const pendingIds = filteredLog.filter(a => !a.is_resolved).map(a => a.id);
     setSelectedIds(selectedIds.length === pendingIds.length ? [] : pendingIds);
   };
 

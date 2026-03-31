@@ -139,10 +139,15 @@ const RecycleBin = ({
                     <div className="d-footer-meta">
                       {(() => {
                         const days = getDaysRemaining(store.deleted_at);
-                        return days === 0
-                          ? <><AlertTriangle size={12} color="#ef4444" /> Expires today — delete permanently</>
-                          : days <= 7
-                          ? <><AlertTriangle size={12} /> {days} days left before auto-removal</>
+                        if (days === 0) {
+                          const isActuallyExpired = store.deleted_at &&
+                            (Date.now() - new Date(store.deleted_at).getTime()) > 30 * 24 * 60 * 60 * 1000;
+                          return isActuallyExpired
+                            ? <><AlertTriangle size={12} color="#ef4444" /> Expired — permanently delete now</>
+                            : <><AlertTriangle size={12} color="#ef4444" /> Last day — expires today</>;
+                        }
+                        return days <= 7
+                          ? <><AlertTriangle size={12} /> {days} day{days !== 1 ? 's' : ''} left before auto-removal</>
                           : <><AlertTriangle size={12} /> Deleted {store.deleted_at ? new Date(store.deleted_at).toLocaleDateString() : '—'} · {days}d remaining</>;
                       })()}
                     </div>

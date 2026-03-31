@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User, X, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
@@ -6,6 +6,11 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  const completionRate = useMemo(() =>
+    stats.totalActivities ? Math.round((stats.completedTasks / stats.totalActivities) * 100) : 0,
+  [stats.completedTasks, stats.totalActivities]);
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div style={{ padding: '0.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -113,12 +118,12 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Completion rate</span>
-              <span style={{ fontWeight: 700 }}>{stats.totalActivities ? Math.round((stats.completedTasks / stats.totalActivities) * 100) : 0}%</span>
+              <span style={{ fontWeight: 700 }}>{completionRate}%</span>
             </div>
             <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
               <div
                 style={{
-                  width: `${stats.totalActivities ? (stats.completedTasks / stats.totalActivities) * 100 : 0}%`,
+                  width: `${completionRate}%`,
                   height: '100%',
                   background: 'var(--primary-color)',
                   transition: 'width 0.5s ease'

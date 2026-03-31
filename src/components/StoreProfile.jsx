@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './StoreProfile.css';
-import { 
-  ArrowLeft, Pencil, Check, X, Phone, User, Database, Globe, MapPin, 
-  ExternalLink, MessageCircle, TrendingUp, ShieldCheck, Clock, 
-  Smartphone, Activity, Trash2, Calendar, Target, Hash, AlertCircle,
-  Archive, Power, ShieldOff, Info, Copy, Bookmark
+import {
+  ArrowLeft, Pencil, Check, X, Phone, User, Database, Globe, MapPin,
+  ExternalLink, TrendingUp, ShieldCheck,
+  Smartphone, Activity, Trash2, Target, Hash, AlertCircle,
+  Power, ShieldOff, Info, Copy, Bookmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -39,7 +39,8 @@ const StoreProfile = ({
   const resolvedCount = storeActivities.filter(a => a.is_resolved).length;
   const successRate = storeActivities.length ? Math.round((resolvedCount / storeActivities.length) * 100) : 0;
 
-  const isSchemaOutdated = store.has_pos === undefined || store.has_sim === undefined;
+  // null covers both undefined (missing key) and null (Supabase returns null for missing columns)
+  const isSchemaOutdated = store.has_pos == null || store.has_sim == null;
 
   const handleSave = () => {
     const { 
@@ -75,7 +76,12 @@ const StoreProfile = ({
       await onUpdate(store.id, { is_active: false });
       await onAddActivity({
         store_id: store.id,
-        outcome_id: outcomes.find(o => o.name.toLowerCase().includes('close'))?.id || outcomes[0]?.id,
+        outcome_id: (
+          outcomes.find(o => o.name.toLowerCase() === 'closed') ||
+          outcomes.find(o => o.name.toLowerCase() === 'closure') ||
+          outcomes.find(o => o.name.toLowerCase().startsWith('clos')) ||
+          outcomes[0]
+        )?.id,
         notes: `STORE CLOSED. Reason: ${reasonObj?.name || 'Manual Closure'}`,
         is_resolved: true
       });

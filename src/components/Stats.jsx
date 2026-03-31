@@ -45,31 +45,27 @@ const Stats = ({ calls, outcomes, stores }) => {
     });
   }, [calls, activeFilters]);
 
-  // Process data for Outcome Distribution
-  const outcomeData = outcomes.map(outcome => {
-    const count = filteredCalls.filter(c => c.outcome_id === outcome.id).length;
-    return { name: outcome.name, value: count };
-  }).filter(d => d.value > 0);
+  const outcomeData = React.useMemo(() =>
+    outcomes.map(outcome => ({
+      name: outcome.name,
+      value: filteredCalls.filter(c => c.outcome_id === outcome.id).length
+    })).filter(d => d.value > 0),
+  [filteredCalls, outcomes]);
 
-  // Process data for Activity Status
-  const statusData = [
+  const statusData = React.useMemo(() => [
     { name: 'Completed', value: filteredCalls.filter(c => c.is_resolved).length },
-    { name: 'Pending', value: filteredCalls.filter(c => !c.is_resolved).length },
-  ];
+    { name: 'Pending',   value: filteredCalls.filter(c => !c.is_resolved).length },
+  ], [filteredCalls]);
 
-  // Process data for Zone Distribution
-  const zones = [...new Set(stores.map(s => s.zone).filter(Boolean))];
-  const zoneData = zones.map(zone => ({
-    name: zone,
-    value: stores.filter(s => s.zone === zone).length
-  }));
+  const zoneData = React.useMemo(() => {
+    const zones = [...new Set(stores.map(s => s.zone).filter(Boolean))];
+    return zones.map(zone => ({ name: zone, value: stores.filter(s => s.zone === zone).length }));
+  }, [stores]);
 
-  // Process data for Category Distribution
-  const categories = [...new Set(stores.map(s => s.category).filter(Boolean))];
-  const categoryData = categories.map(cat => ({
-    name: cat,
-    value: stores.filter(s => s.category === cat).length
-  }));
+  const categoryData = React.useMemo(() => {
+    const categories = [...new Set(stores.map(s => s.category).filter(Boolean))];
+    return categories.map(cat => ({ name: cat, value: stores.filter(s => s.category === cat).length }));
+  }, [stores]);
 
   return (
     <div className="section-container">

@@ -111,7 +111,7 @@ const ActivityForm = ({
       ...formData,
       id: generateId(),
       created_at: new Date().toISOString(),
-      outcome_id: parseInt(formData.outcome_id)
+      outcome_id: Number(formData.outcome_id) || formData.outcome_id
     });
     // Reset form
     setFormData({

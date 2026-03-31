@@ -26,7 +26,7 @@ const GlobalSearch = ({ isOpen, onClose, stores, activities, outcomes = [], onSe
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        onClose(false);
+        onClose();
       }
       if (e.key === 'Escape') onClose();
     };
@@ -80,6 +80,8 @@ const GlobalSearch = ({ isOpen, onClose, stores, activities, outcomes = [], onSe
             type="text"
             role="searchbox"
             aria-label="Search for restaurants, activities, or owners"
+            aria-expanded={results.stores.length > 0 || results.activities.length > 0}
+            aria-autocomplete="list"
             placeholder="Search for restaurants, activities, or owners..."
             value={query}
             onChange={e => setQuery(e.target.value)}
