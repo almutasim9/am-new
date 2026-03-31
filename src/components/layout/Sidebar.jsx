@@ -13,7 +13,7 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
           <h1 className="gradient-text" style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <CalendarCheck size={26} /> Registry
           </h1>
-          <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '2px' }}>v2.7 MOBILE READY</p>
+          <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '2px' }}>v2.7 UNIVERSAL</p>
         </div>
         <button 
           onClick={onClose} 

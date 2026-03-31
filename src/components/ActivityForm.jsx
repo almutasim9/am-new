@@ -1,9 +1,28 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Check, Clock, MessageSquare, AlertCircle,
-  Calendar, Store, Send
+  Calendar, Store, Send, Search, Star, Tag, DollarSign, Utensils, Coffee, Users, Wrench, RefreshCw, XCircle, Info, AlertTriangle, Zap, TrendingUp, ChevronRight
 } from 'lucide-react';
+
+const OUTCOME_ICONS = {
+  'Highlights': Star,
+  'Promotion': Tag,
+  'Payment Inquiry': DollarSign,
+  'Menu Revamp': Utensils,
+  'Catch Up': Coffee,
+  'Operating Hours': Clock,
+  'Handover': Users,
+  'POS issues': Wrench,
+  'Item Update': RefreshCw,
+  'Close Permanently': XCircle,
+  'Store Info Update': Info,
+  'Closing temporarily': AlertTriangle,
+  'Mega deals': Zap,
+  'Save 5K': TrendingUp
+};
+
+const QUICK_OUTCOME_NAMES = ['Highlights', 'Promotion', 'POS issues', 'Item Update'];
 import { format } from 'date-fns';
 
 // UUID fallback for older browsers
@@ -42,6 +61,10 @@ const ActivityForm = ({
     is_resolved: false
   });
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isOutcomeDropdownOpen, setIsOutcomeDropdownOpen] = useState(false);
+
   const selectedStore = useMemo(() => 
     (stores || []).find(s => s?.id === formData.store_id), 
   [stores, formData.store_id]);
@@ -51,6 +74,34 @@ const ActivityForm = ({
       ...prev,
       notes: prev.notes ? `${prev.notes}. ${template.text}` : template.text
     }));
+  };
+
+  const filteredStores = useMemo(() => {
+    if (!stores) return [];
+    const activeStores = (stores || []).filter(s => s && s.is_active);
+    if (!searchTerm) return activeStores;
+    return activeStores.filter(s => 
+      (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.id?.toString() || '').includes(searchTerm)
+    );
+  }, [stores, searchTerm]);
+
+  const otherOutcomes = useMemo(() => {
+    return (outcomes || []).filter(o => !QUICK_OUTCOME_NAMES.includes(o.name));
+  }, [outcomes]);
+
+  const quickOutcomes = useMemo(() => {
+    return (outcomes || []).filter(o => QUICK_OUTCOME_NAMES.includes(o.name));
+  }, [outcomes]);
+
+  const selectedOutcome = useMemo(() => {
+    return (outcomes || []).find(o => o.id === formData.outcome_id);
+  }, [outcomes, formData.outcome_id]);
+
+  const handleStoreSelect = (store) => {
+    setFormData(prev => ({ ...prev, store_id: store.id }));
+    setSearchTerm(store.name);
+    setIsDropdownOpen(false);
   };
 
   const handleFormSubmit = (e) => {
@@ -95,7 +146,7 @@ const ActivityForm = ({
       <div className="activity-form-overlay" onClick={onClose}>
         <motion.div 
           className="activity-form-container"
-          variants={window.innerWidth <= 768 ? sheetVariants : modalVariants}
+          variants={modalVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -124,39 +175,165 @@ const ActivityForm = ({
                 <label className="section-label">
                   <span><Store size={14} /> Target Restaurant / المطعم المستهدف</span>
                 </label>
-                <select 
-                  required 
-                  value={formData.store_id} 
-                  onChange={e => setFormData({...formData, store_id: e.target.value})}
-                  className="premium-select"
-                >
-                  <option value="">Select a restaurant...</option>
-                  {stores.filter(s => s.is_active).map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                <div className="searchable-store-container">
+                  <div className="search-input-wrapper">
+                    <Store className="input-icon-left" size={16} />
+                    <input 
+                      type="text" 
+                      placeholder="Search or select a restaurant..." 
+                      className="premium-search-input"
+                      value={searchTerm || (selectedStore?.name || '')}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setIsDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                    />
+                    {isDropdownOpen && (
+                      <button 
+                        type="button" 
+                        className="clear-search-btn"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setFormData({ ...formData, store_id: '' });
+                          setIsDropdownOpen(true);
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div 
+                        className="store-results-dropdown"
+                        initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        {filteredStores.length > 0 ? (
+                          <div className="store-list-scrollable">
+                            {filteredStores.map(s => (
+                              <div 
+                                key={s.id} 
+                                className={`store-result-item ${formData.store_id === s.id ? 'selected' : ''}`}
+                                onClick={() => handleStoreSelect(s)}
+                              >
+                                <div className="store-item-info">
+                                  <span className="store-name">{s.name}</span>
+                                  {s.area && <span className="store-area">{s.area}</span>}
+                                </div>
+                                {formData.store_id === s.id && <Check size={14} className="selected-check" />}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="no-stores-found">
+                            No restaurants match your search
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Close dropdown on click outside logic (simple version) */}
+                  {isDropdownOpen && (
+                    <div 
+                      className="dropdown-backdrop-transparent" 
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Outcome Selection - Touch Oriented */}
+            {/* Outcome Selection - Modern Hybrid */}
             <div className="form-section">
               <label className="section-label">
                 <span><AlertCircle size={14} /> Interaction Outcome / نتيجة التواصل</span>
               </label>
-              <div className="outcome-ribbon">
-                {outcomes.map(o => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    className={`outcome-chip ${formData.outcome_id === o.id ? 'active' : ''}`}
-                    onClick={() => setFormData({...formData, outcome_id: o.id})}
-                    aria-pressed={formData.outcome_id === o.id}
-                    aria-label={o.name}
+              
+              <div className="modern-outcome-container">
+                {/* 1. Quick Selection (Top Frequent) */}
+                <div className="quick-picks-row">
+                  {quickOutcomes.map(o => {
+                    const Icon = OUTCOME_ICONS[o.name] || Tag;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        className={`quick-pick-chip ${formData.outcome_id === o.id ? 'active' : ''}`}
+                        onClick={() => {
+                          setFormData({...formData, outcome_id: o.id});
+                        }}
+                      >
+                        <Icon size={16} />
+                        <span>{o.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 2. Custom Premium Dropdown (Select) */}
+                <div className="outcome-search-wrapper">
+                  <div 
+                    className={`premium-select-btn ${isOutcomeDropdownOpen ? 'open' : ''} ${selectedOutcome && !QUICK_OUTCOME_NAMES.includes(selectedOutcome.name) ? 'has-value' : ''}`}
+                    onClick={() => setIsOutcomeDropdownOpen(!isOutcomeDropdownOpen)}
                   >
-                    {formData.outcome_id === o.id && <Check size={14} />}
-                    {o.name}
-                  </button>
-                ))}
+                    <div className="select-btn-content">
+                      {selectedOutcome && !QUICK_OUTCOME_NAMES.includes(selectedOutcome.name) ? (
+                        <>
+                          {(() => {
+                            const SelectedIcon = OUTCOME_ICONS[selectedOutcome.name] || Tag;
+                            return <SelectedIcon size={16} />;
+                          })()}
+                          <span className="selected-label">{selectedOutcome.name}</span>
+                        </>
+                      ) : (
+                        <span className="placeholder">Pick another result... اختر نتيجة أخرى</span>
+                      )}
+                    </div>
+                    <ChevronRight size={18} className="select-arrow" />
+                  </div>
+
+                  <AnimatePresence>
+                    {isOutcomeDropdownOpen && (
+                      <motion.div 
+                        className="outcome-results-popover"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                      >
+                        <div className="popover-results-header">More Outcomes / خيارات إضافية</div>
+                        <div className="popover-results-list">
+                          {otherOutcomes.map(o => {
+                            const Icon = OUTCOME_ICONS[o.name] || Tag;
+                            return (
+                              <div 
+                                key={o.id}
+                                className={`popover-result-item ${formData.outcome_id === o.id ? 'active' : ''}`}
+                                onClick={() => {
+                                  setFormData({...formData, outcome_id: o.id});
+                                  setIsOutcomeDropdownOpen(false);
+                                }}
+                              >
+                                <Icon size={16} />
+                                <span>{o.name}</span>
+                                {formData.outcome_id === o.id && <Check size={14} className="check-mark" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {isOutcomeDropdownOpen && (
+                    <div className="dropdown-backdrop-transparent" onClick={() => setIsOutcomeDropdownOpen(false)} />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -240,16 +417,18 @@ const ActivityForm = ({
           .activity-form-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.7); /* Solid dark overlay, no blur */
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             z-index: 10000;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1.5rem;
           }
 
           .activity-form-container {
-            background: #ffffff; /* Solid white background */
+            background: #ffffff;
             width: 100%;
             max-width: 540px;
             max-height: 85vh;
@@ -317,27 +496,316 @@ const ActivityForm = ({
             transition: all 0.2s;
           }
 
-          .premium-select:focus, .premium-textarea:focus, .premium-date-input:focus {
+          .premium-select:focus, .premium-textarea:focus, .premium-date-input:focus, .premium-search-input:focus {
             outline: none; border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
           }
 
-          .outcome-ribbon {
-            display: flex; gap: 8px; overflow-x: auto;
-            padding-bottom: 8px; scrollbar-width: none;
+          /* Searchable Dropdown Styles */
+          .searchable-store-container {
+            position: relative;
+            width: 100%;
           }
 
-          .outcome-chip {
-            white-space: nowrap; padding: 12px 16px;
-            border-radius: 12px; border: 1px solid #e2e8f0;
-            background: #f8fafc; font-size: 0.85rem; font-weight: 700;
-            color: #64748b; transition: all 0.2s;
-            cursor: pointer; min-height: 44px;
-            display: inline-flex; align-items: center; gap: 6px;
+          .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
           }
-          .outcome-chip.active {
-            background: var(--primary-color); color: white;
+
+          .premium-search-input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.95rem;
+            background: #ffffff;
+            color: #1e293b;
+            transition: all 0.2s;
+          }
+
+          .input-icon-left {
+            position: absolute;
+            left: 1rem;
+            color: #94a3b8;
+          }
+
+          .clear-search-btn {
+            position: absolute;
+            right: 0.75rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: none;
+            background: #f1f5f9;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+          }
+
+          .store-results-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 280px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .store-list-scrollable {
+            overflow-y: auto;
+            max-height: 280px;
+            scrollbar-width: thin;
+          }
+
+          .store-result-item {
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid #f8fafc;
+          }
+
+          .store-result-item:last-child { border-bottom: none; }
+
+          .store-result-item:hover {
+            background: #f8fafc;
+          }
+
+          .store-result-item.selected {
+            background: rgba(37, 99, 235, 0.05);
+          }
+
+          .store-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+
+          .store-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1e293b;
+          }
+
+          .store-area {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #64748b;
+          }
+
+          .selected-check {
+            color: var(--primary-color);
+          }
+
+          .no-stores-found {
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 600;
+          }
+
+          .dropdown-backdrop-transparent {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 999;
+          }
+
+          .modern-outcome-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .quick-picks-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .quick-pick-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: white;
+            border: 1.5px solid #eef2f6;
+            border-radius: 14px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            min-height: 48px;
+          }
+
+          .quick-pick-chip:hover {
             border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.02);
+            transform: translateY(-1px);
+          }
+
+          .quick-pick-chip.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+          }
+
+          .outcome-search-wrapper {
+            position: relative;
+            z-index: 100;
+          }
+
+          .outcome-input-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+          }
+
+          .search-icon-fixed {
+            position: absolute;
+            left: 16px;
+            color: #94a3b8;
+          }
+
+          .premium-select-btn {
+            width: 100%;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+          }
+
+          .premium-select-btn:hover {
+            border-color: var(--primary-color);
+            background: white;
+          }
+
+          .premium-select-btn.open {
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+          }
+
+          .premium-select-btn.has-value {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+          }
+
+          .select-btn-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+          }
+
+          .select-btn-content .placeholder {
+            color: #64748b;
+            font-weight: 500;
+          }
+
+          .select-arrow {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #94a3b8;
+          }
+
+          .premium-select-btn.open .select-arrow {
+            transform: rotate(90deg);
+            color: var(--primary-color);
+          }
+
+          .popover-result-item.active {
+            background: #f1f5f9;
+            color: var(--primary-color);
+          }
+
+          .check-mark {
+            margin-left: auto;
+            color: var(--primary-color);
+          }
+
+          .outcome-results-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            z-index: 1000;
+          }
+
+          .popover-results-header {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+
+          .popover-results-list {
+            max-height: 260px;
+            overflow-y: auto;
+          }
+
+          .popover-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+          }
+
+          .popover-result-item:hover {
+            background: #f1f5f9;
+            color: var(--primary-color);
+          }
+
+          .popover-result-item svg {
+            color: #94a3b8;
+          }
+
+          .popover-result-item:hover svg {
+            color: var(--primary-color);
+          }
+
+          .no-popover-results {
+            padding: 24px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
           }
 
           .quick-templates-grid {
@@ -377,9 +845,10 @@ const ActivityForm = ({
           .btn-submit-activity:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
           @media (max-width: 768px) {
-            .activity-form-overlay { padding: 0; align-items: flex-end; }
+            .activity-form-overlay { padding: 1rem; align-items: center; justify-content: center; }
             .activity-form-container {
-              max-width: 100%; border-radius: 20px 20px 0 0;
+              max-width: 100%; 
+              border-radius: 20px;
               max-height: 90vh;
             }
             .quick-templates-grid { grid-template-columns: repeat(2, 1fr); }

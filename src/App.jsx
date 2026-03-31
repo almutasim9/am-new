@@ -50,7 +50,7 @@ function App() {
 
   const notify = useCallback((type, message) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 5000); // Increased to 5 seconds for better readability
+    setTimeout(() => setToast(null), 5000);
   }, []);
 
   const stats = {
@@ -65,100 +65,201 @@ function App() {
     setNotifPermission(granted ? 'granted' : 'denied');
   }, []);
 
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const [s, a, o, z, c, cr, ds] = await Promise.all([
+        storeService.getAll(),
+        activityService.getAll(),
+        settingsService.getOutcomes(),
+        settingsService.getZones(),
+        settingsService.getCategories(),
+        settingsService.getClosureReasons(),
+        storeService.getDeleted()
+      ]);
+      setStores(s || []);
+      setActivities(a || []);
+      setOutcomes(o || []);
+      setZones(z || []);
+      setCategories(c || []);
+      setClosureReasons(cr || []);
+      setDeletedStores(ds || []);
+
+      try {
+        const l = await libraryService.getAll();
+        setLinks(l || []);
+      } catch (e) {
+        setLinks([]);
+        setLibraryError(true);
+      }
+    } catch (error) {
+      notify('error', 'Failed to synchronize core data');
+    } finally {
+      setLoading(false);
+    }
+  }, [notify]);
 
   const addStore = useCallback(async (store) => { 
     if (stores.some(s => s.id === store.id)) {
       notify('error', `Store ID "${store.id}" is already used. Please use a unique ID.`);
       return;
     }
-    try { await storeService.create(store); notify('success', 'Store added successfully'); } 
+    try { 
+      const newStore = await storeService.create(store); 
+      setStores(prev => [newStore, ...prev]);
+      notify('success', 'Store added successfully'); 
+    } 
     catch(e) { notify('error', `Failed to add store: ${e.message || 'Unknown error'}`); }
   }, [stores, notify]);
 
   const updateStore = useCallback(async (id, updates) => { 
-    try { await storeService.update(id, updates); notify('success', 'Information updated'); } 
+    try { 
+      const updated = await storeService.update(id, updates); 
+      setStores(prev => prev.map(s => s.id === id ? updated : s));
+      notify('success', 'Information updated'); 
+    } 
     catch(e) { notify('error', `Update failed: ${e.message || 'Unknown error'}`); }
   }, [notify]);
 
   const bulkAddStores = useCallback(async (list) => { 
-    try { await storeService.bulkCreate(list); notify('success', `Imported ${list.length} stores`); } 
+    try { 
+      await storeService.bulkCreate(list); 
+      fetchInitialData();
+      notify('success', `Imported ${list.length} stores`); 
+    } 
     catch(e) { notify('error', 'Import failed'); }
-  }, [notify]);
+  }, [notify, fetchInitialData]);
 
   const deleteStore = useCallback(async (id) => {
-    try { await storeService.delete(id); notify('success', 'Store removed'); }
+    try { 
+      await storeService.delete(id); 
+      setStores(prev => prev.filter(s => s.id !== id));
+      notify('success', 'Store removed'); 
+    }
     catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const toggleStoreStatus = useCallback(async (id) => {
     const store = stores.find(s => s.id === id);
-    try { await storeService.update(id, { is_active: !store.is_active }); }
+    if (!store) return;
+    try { 
+      const updated = await storeService.update(id, { is_active: !store.is_active }); 
+      setStores(prev => prev.map(s => s.id === id ? updated : s));
+    }
     catch(e) { notify('error', `Status toggle failed: ${e.message || 'Unknown error'}`); }
   }, [stores, notify]);
 
   const addActivity = useCallback(async (activity) => {
-    try { await activityService.create(activity); notify('success', 'Activity logged'); }
+    try { 
+      const newActivity = await activityService.create(activity); 
+      setActivities(prev => [newActivity, ...prev]);
+      notify('success', 'Activity logged'); 
+    }
     catch(e) { notify('error', 'Failed to log activity'); }
   }, [notify]);
 
   const resolveActivity = useCallback(async (id) => { 
-    try { await activityService.resolve(id); notify('success', 'Task marked as done'); }
+    try { 
+      const updated = await activityService.resolve(id); 
+      setActivities(prev => prev.map(a => a.id === id ? updated : a));
+      notify('success', 'Task marked as done'); 
+    }
     catch(e) { notify('error', 'Action failed'); }
   }, [notify]);
 
   const bulkResolveActivities = useCallback(async (ids) => {
-    try { await activityService.bulkResolve(ids); notify('success', `${ids.length} tasks completed`); }
+    try { 
+      await activityService.bulkResolve(ids); 
+      setActivities(prev => prev.map(a => ids.includes(a.id) ? { ...a, is_resolved: true } : a));
+      notify('success', `${ids.length} tasks completed`); 
+    }
     catch(e) { notify('error', 'Bulk action failed'); }
   }, [notify]);
 
   const addLibraryLink = useCallback(async (name, url, description) => {
-    try { await libraryService.create(name, url, description); notify('success', 'Link added to library!'); }
+    try { 
+      const newLink = await libraryService.create(name, url, description); 
+      setLinks(prev => [newLink, ...prev]);
+      notify('success', 'Link added to library!'); 
+    }
     catch(e) { notify('error', 'Error adding link'); }
   }, [notify]);
 
   const updateLibraryLink = useCallback(async (id, updates) => {
-    try { await libraryService.update(id, updates); notify('success', 'Link updated successfully!'); }
+    try { 
+      const updated = await libraryService.update(id, updates); 
+      setLinks(prev => prev.map(l => l.id === id ? updated : l));
+      notify('success', 'Link updated successfully!'); 
+    }
     catch(e) { notify('error', 'Failed to update link'); }
   }, [notify]);
 
   const deleteLibraryLink = useCallback(async (id) => {
-    try { await libraryService.delete(id); notify('success', 'Link removed from library'); }
+    try { 
+      await libraryService.delete(id); 
+      setLinks(prev => prev.filter(l => l.id !== id));
+      notify('success', 'Link removed from library'); 
+    }
     catch(e) { notify('error', 'Error removing link'); }
   }, [notify]);
 
   const addOutcome = useCallback(async (name) => { 
-    try { await settingsService.createOutcome(name); notify('success', 'Outcome added'); }
+    try { 
+      const newOutcome = await settingsService.createOutcome(name); 
+      setOutcomes(prev => [...prev, newOutcome]);
+      notify('success', 'Outcome added'); 
+    }
     catch(e) { notify('error', 'Failed to add outcome'); }
   }, [notify]);
 
   const deleteOutcome = useCallback(async (id) => { 
-    try { await settingsService.deleteOutcome(id); notify('success', 'Outcome removed'); }
+    try { 
+      await settingsService.deleteOutcome(id); 
+      setOutcomes(prev => prev.filter(o => o.id !== id));
+      notify('success', 'Outcome removed'); 
+    }
     catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addZone = useCallback(async (name) => { 
-    try { await settingsService.createZone(name); notify('success', 'Zone added'); }
+    try { 
+      const newZone = await settingsService.createZone(name); 
+      setZones(prev => [...prev, newZone]);
+      notify('success', 'Zone added'); 
+    }
     catch(e) { notify('error', 'Failed to add zone'); }
   }, [notify]);
 
   const deleteZone = useCallback(async (id) => { 
-    try { await settingsService.deleteZone(id); notify('success', 'Zone removed'); }
+    try { 
+      await settingsService.deleteZone(id); 
+      setZones(prev => prev.filter(z => z.id !== id));
+      notify('success', 'Zone removed'); 
+    }
     catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addCategory = useCallback(async (name) => { 
-    try { await settingsService.createCategory(name); notify('success', 'Category added'); }
+    try { 
+      const newCat = await settingsService.createCategory(name); 
+      setCategories(prev => [...prev, newCat]);
+      notify('success', 'Category added'); 
+    }
     catch(e) { notify('error', 'Failed to add category'); }
   }, [notify]);
 
   const deleteCategory = useCallback(async (id) => { 
-    try { await settingsService.deleteCategory(id); notify('success', 'Category removed'); }
+    try { 
+      await settingsService.deleteCategory(id); 
+      setCategories(prev => prev.filter(c => c.id !== id));
+      notify('success', 'Category removed'); 
+    }
     catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const softDeleteStore = useCallback(async (id) => {
     try { 
       await storeService.softDelete(id); 
+      setStores(prev => prev.map(s => s.id === id ? { ...s, deleted_at: new Date().toISOString() } : s));
       notify('success', 'Store moved to Recycle Bin'); 
     } catch(e) { notify('error', 'Could not delete store'); }
   }, [notify]);
@@ -166,6 +267,7 @@ function App() {
   const restoreStore = useCallback(async (id) => {
     try { 
       await storeService.restore(id); 
+      setStores(prev => prev.map(s => s.id === id ? { ...s, deleted_at: null } : s));
       notify('success', 'Store restored successfully!'); 
     } catch(e) { notify('error', 'Restore failed'); }
   }, [notify]);
@@ -173,17 +275,26 @@ function App() {
   const permanentDeleteStore = useCallback(async (id) => {
     try { 
       await storeService.delete(id); 
+      setStores(prev => prev.filter(s => s.id !== id));
       notify('success', 'Store permanently removed'); 
     } catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addClosureReason = useCallback(async (name) => {
-    try { await settingsService.createClosureReason(name); notify('success', 'Reason added'); }
+    try { 
+      const newReason = await settingsService.createClosureReason(name); 
+      setClosureReasons(prev => [...prev, newReason]);
+      notify('success', 'Reason added'); 
+    }
     catch(e) { notify('error', 'Failed to add reason'); }
   }, [notify]);
 
   const deleteClosureReason = useCallback(async (id) => {
-    try { await settingsService.deleteClosureReason(id); notify('success', 'Reason removed'); }
+    try { 
+      await settingsService.deleteClosureReason(id); 
+      setClosureReasons(prev => prev.filter(cr => cr.id !== id));
+      notify('success', 'Reason removed'); 
+    }
     catch(e) { notify('error', 'Delete failed'); }
   }, [notify]);
 
@@ -291,42 +402,6 @@ function App() {
     }
   }, [activities, stores, notifPermission]);
 
-  const fetchInitialData = useCallback(async () => {
-    try {
-      const [s, a, o, z, c, cr, ds] = await Promise.all([
-        storeService.getAll(),
-        activityService.getAll(),
-        settingsService.getOutcomes(),
-        settingsService.getZones(),
-        settingsService.getCategories(),
-        settingsService.getClosureReasons(),
-        storeService.getDeleted()
-      ]);
-      setStores(s || []);
-      setActivities(a || []);
-      setOutcomes(o || []);
-      setZones(z || []);
-      setCategories(c || []);
-      setClosureReasons(cr || []);
-      setDeletedStores(ds || []);
-
-
-      // Non-blocking Library Fetch (may fail if table not migrate yet)
-      try {
-        const l = await libraryService.getAll();
-        setLinks(l || []);
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn('Library data could not be loaded - table may not exist yet.');
-        setLinks([]);
-        setLibraryError(true);
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Core sync error:', error);
-      notify('error', 'Failed to synchronize core data');
-    } finally {
-      setLoading(false);
-    }
-  }, [notify]);
 
 
   const renderContent = () => {
