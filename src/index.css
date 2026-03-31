@@ -87,6 +87,7 @@ input, select, textarea {
   box-shadow: var(--shadow-sm);
   font-size: 1rem; /* Prevents iOS zoom when tapping inputs */
   touch-action: manipulation;
+  width: 100%; /* Ensure inputs fill their grid containers */
 }
 
 input:focus, select:focus, textarea:focus {

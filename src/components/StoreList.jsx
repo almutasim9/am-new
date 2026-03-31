@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Plus, Search, MapPin, Phone, User, Activity, FileDown, FileUp, 
   Loader2, X, Layers, Globe, Compass, ExternalLink, Trash2, 
@@ -384,44 +385,68 @@ const StoreList = ({
         )}
       </AnimatePresence>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <motion.div className="glass-card modal-content" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Add New Restaurant</h3>
-            <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div 
+            className="glass-card modal-content visible-modal" 
+            onClick={e => e.stopPropagation()}
+            style={{ 
+              padding: '2.5rem', 
+              background: 'white', 
+              zIndex: 3001, 
+              position: 'relative',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              width: '90%',
+              maxWidth: '550px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Add New Restaurant</h3>
+              <button 
+                type="button" 
+                onClick={() => setIsModalOpen(false)}
+                className="close-modal-btn"
+                style={{ width: '40px', height: '40px', background: 'var(--surface-hover)' }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="responsive-modal-form">
+              <div className="form-row-grid tri-col">
                 <div className="form-group"><label>Store ID</label><input required placeholder="REST-101" value={newStore.id} onChange={e => setNewStore({...newStore, id: e.target.value})} /></div>
                 <div className="form-group"><label>Store Name</label><input required placeholder="Name" value={newStore.name} onChange={e => setNewStore({...newStore, name: e.target.value})} /></div>
                 <div className="form-group"><label>Brand ID</label><input placeholder="BRAND-01" value={newStore.brand_id} onChange={e => setNewStore({...newStore, brand_id: e.target.value})} /></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-row-grid bi-col">
                 <div className="form-group">
                   <label>Category</label>
                   <select required value={newStore.category} onChange={e => setNewStore({...newStore, category: e.target.value})}>
                     <option value="">Select Category</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    {(categories || []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>Owner Name</label><input required placeholder="Owner" value={newStore.owner_name} onChange={e => setNewStore({...newStore, owner_name: e.target.value})} /></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-row-grid bi-col">
                 <div className="form-group"><label>Phone Number</label><input required placeholder="+964..." value={newStore.phone} onChange={e => setNewStore({...newStore, phone: e.target.value})} /></div>
                 <div className="form-group">
                   <label>Zone</label>
                   <select required value={newStore.zone} onChange={e => setNewStore({...newStore, zone: e.target.value})}>
                     <option value="">Select Zone</option>
-                    {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
+                    {(zones || []).map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
                   </select>
                 </div>
               </div>
               <div className="form-group"><label>Physical Address</label><textarea rows="1" placeholder="Address" value={newStore.address} onChange={e => setNewStore({...newStore, address: e.target.value})} /></div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn-primary" style={{ flexGrow: 1 }}>Register Restaurant</button>
-                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
+                <button type="submit" className="btn-primary" style={{ flexGrow: 1, height: '52px', fontSize: '1rem', fontWeight: 600 }}>Register Restaurant</button>
+                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)} style={{ height: '52px' }}>Cancel</button>
               </div>
             </form>
-          </motion.div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       <style>{`
@@ -461,6 +486,30 @@ const StoreList = ({
           .desktop-only { display: none !important; }
           .mobile-only { display: flex !important; }
           .search-wrapper-v3 { min-width: 100%; }
+          .modal-content { padding: 1.5rem !important; }
+          .form-row-grid.tri-col, .form-row-grid.bi-col { grid-template-columns: 1fr !important; gap: 0 !important; }
+        }
+
+        .form-row-grid { display: grid; gap: 1rem; }
+        .form-row-grid.tri-col { grid-template-columns: repeat(3, 1fr); }
+        .form-row-grid.bi-col { grid-template-columns: repeat(2, 1fr); }
+
+        .close-modal-btn {
+          background: var(--surface-hover);
+          color: var(--text-dim);
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .close-modal-btn:hover {
+          background: var(--danger);
+          color: white;
+          transform: rotate(90deg);
         }
       `}</style>
     </div>
