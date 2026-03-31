@@ -1,27 +1,41 @@
-# Activity Registry — Merchant Support CRM
+# Registry v2.7 — Merchant Support CRM (UNIVERSAL)
 
-A modern, real-time CRM web app for managing merchant support activities, store registries, and daily follow-ups. Built as a Progressive Web App (PWA) with offline support and a premium "World Class" user interface.
+A world-class, real-time CRM web application designed for high-performance merchant support, store registries, and daily interaction logging. Built as a **Progressive Web App (PWA)**, it offers a seamless "App-like" experience across laptops, tablets, and smartphones.
+
+---
+
+## 🌟 What's New in v2.7 UNIVERSAL
+
+- **Universal Modal Engine** — A completely redesigned modal system that is 100% consistent across all screen sizes. No more missing headers on mobile; the layout is anchored, professional, and adaptive.
+- **Premium Outcome Selector** — Replaced basic search with a high-end, searchable dropdown and "Quick Pick" chips for lightning-fast logging.
+- **Enhanced Responsiveness** — Adaptive "Card Views" for mobile that transform complex data tables into touch-friendly interfaces automatically.
+- **Mobile-First UX** — Optimized touch targets, centered modals, and streamlined navigation (Hamburger drawer).
+
+---
 
 ## 🚀 Key Features
 
-- **Brand Management** — Track stores by `Brand ID` across the registry and activity logs.
-- **Smart Data Sync (Upsert)** — Bulk import stores from Excel with intelligent synchronization; updates existing records and adds new ones in one go.
-- **Premium Interaction Sheet** — Professional, bilingual (Arabic/English) logging interface with sticky glass footers and quick-action templates.
-- **Real-time Collaboration** — Instantly see updates across devices via Supabase Realtime.
-- **Advanced Registry** — Manage restaurants with deep categorization, zone filtering, and quick contact actions (WhatsApp/Phone).
-- **PWA Excellence** — Desktop and mobile installable, optimized for high-speed offline performance.
-- **Analytics & Targets** — Visual performance tracking with monthly goal setting.
+- **Store & Brand Registry** — Track merchants by `Brand ID` with deep categorization and zone filtering.
+- **Smart Data Sync (Upsert)** — Intelligent bulk import from Excel that synchronizes existing records and adds new ones seamlessly.
+- **Interaction Logging** — Bilingual (Arabic/English) interface with quick-action templates and detailed feedback fields.
+- **Real-time Collaboration** — Instantly synchronize data across your entire team using Supabase Realtime.
+- **Operational Targets** — Set and track monthly performance goals with visual progress indicators.
+- **PWA Excellence** — Installable on iOS/Android/Desktop with reliable offline asset caching.
+
+---
 
 ## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 19 + Vite |
-| **Logic** | Custom Hooks + Context API |
-| **Styling** | Vanilla CSS (Variables) + Framer Motion |
-| **Backend** | Supabase (PostgreSQL + Realtime) |
-| **Excel Ops** | XLSX (Indestructible Download Stream) |
-| **PWA** | vite-plugin-pwa |
+| **Frontend Framework** | React 19 + Vite |
+| **Motion & Animation** | Framer Motion (Smooth Transitions) |
+| **Icons & Visuals** | Lucide React |
+| **Backend & Auth** | Supabase (PostgreSQL + Realtime + RLS) |
+| **Data Processing** | XLSX (Indestructible Stream Logic) |
+| **Mobile Integration** | Vite PWA Plugin |
+
+---
 
 ## 📖 Getting Started
 
@@ -33,38 +47,38 @@ npm install
 ```
 
 ### 2. Environment Setup
-Create a `.env` file in the root:
+Create a `.env` file in the root directory:
 ```env
-VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-### 3. Database Sync
-Run the initial `schema.sql` in your Supabase SQL Editor. 
-**Important:** If updating from an older version, ensure the `brand_id` column exists:
-```sql
-ALTER TABLE stores ADD COLUMN IF NOT EXISTS brand_id TEXT;
-```
+### 3. Database Initialization
+Execute the `schema.sql` file in your Supabase SQL Editor to set up tables and **Row Level Security (RLS)**.
 
 ### 4. Excel Import Requirements
-To use the Bulk Import feature, your Excel file should contain the following headers:
+To use the Bulk Import feature, ensure your Excel file contains these headers:
 - `ID`, `Name`, `Category`, `Zone`, `Phone`, `Brand_ID`, `Owner`
 
-## 📊 Database Architecture
+---
 
-| Table | Purpose |
-|-------|---------|
-| `stores` | Master registry (ID, Name, Brand_ID, category, zone, etc.) |
-| `calls` | Transactional activity logs and follow-up tasks |
-| `call_outcomes` | Configuration for interaction results |
-| `library_links` | Centralized resource management |
-| `targets` | Monthly operational KPI goals |
+## 📊 Core Architecture
 
-## 🔐 Security & Deployment
+| Component | Responsibility |
+|-----------|----------------|
+| `ActivityForm` | Universal modal for recording merchant interactions. |
+| `StoreList` | Master registry with directory search and filtering. |
+| `StoreProfile` | Deep-dive view for individual merchant history and stats. |
+| `ActivityLog` | Daily operational timeline with adaptive mobile card views. |
+| `Library` | Centralized repository for merchant resources and links. |
 
-- **RLS Protection:** Every table is protected by Row Level Security (`authenticated` users only).
-- **MIME Safety:** File downloads use `application/octet-stream` to ensure cross-browser compatibility.
-- **PWA Caching:** Service Workers handle asset caching for reliable offline access.
+---
+
+## 🔐 Security & Operations
+
+- **Full RLS Policy:** Data is strictly protected via Supabase Policies (Authenticated users only).
+- **MIME Safety:** File downloads use specialized stream logic for cross-browser stability.
+- **Offline Reliability:** Service Workers manage caching to ensure the app works even on weak connections.
 
 ---
 *Maintained with excellence by the Merchant Support Team.*
