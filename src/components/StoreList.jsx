@@ -33,6 +33,7 @@ const StoreList = ({
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterZone, setFilterZone] = useState('');
+  const [filterStatus, setFilterStatus] = useState('active');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -58,9 +59,10 @@ const StoreList = ({
         s.phone?.includes(debouncedSearch);
       const matchesCategory = !filterCategory || s.category === filterCategory;
       const matchesZone = !filterZone || s.zone === filterZone;
-      return matchesSearch && matchesCategory && matchesZone;
+      const matchesStatus = filterStatus === 'all' ? true : (filterStatus === 'active' ? s.is_active !== false : s.is_active === false);
+      return matchesSearch && matchesCategory && matchesZone && matchesStatus;
     }),
-  [stores, debouncedSearch, filterCategory, filterZone]);
+  [stores, debouncedSearch, filterCategory, filterZone, filterStatus]);
 
   const totalPages = Math.ceil(filteredStores.length / PAGE_SIZE);
   const pagedStores = filteredStores.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -200,6 +202,14 @@ const StoreList = ({
               </div>
               
               <div className="filter-group-v2">
+                <div className="filter-pill-v2">
+                  <Activity size={14} />
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option value="all">All Status</option>
+                    <option value="active">Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                  </select>
+                </div>
                 <div className="filter-pill-v2">
                   <Globe size={14} />
                   <select value={filterZone} onChange={(e) => setFilterZone(e.target.value)}>

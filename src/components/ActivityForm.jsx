@@ -56,6 +56,7 @@ const ActivityForm = ({
 }) => {
   const [formData, setFormData] = useState({
     store_id: initialStoreId,
+    interaction_date: new Date().toISOString().split('T')[0],
     outcome_id: outcomes[0]?.id || '',
     notes: '',
     follow_up_date: '',
@@ -107,15 +108,21 @@ const ActivityForm = ({
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    const interactionDate = new Date(formData.interaction_date);
+    // Combine date with current time
+    const now = new Date();
+    interactionDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
     onSubmit({
       ...formData,
       id: generateId(),
-      created_at: new Date().toISOString(),
+      created_at: interactionDate.toISOString(),
       outcome_id: Number(formData.outcome_id) || formData.outcome_id
     });
     // Reset form
     setFormData({
       store_id: initialStoreId,
+      interaction_date: new Date().toISOString().split('T')[0],
       outcome_id: outcomes[0]?.id || '',
       notes: '',
       follow_up_date: '',
@@ -170,6 +177,17 @@ const ActivityForm = ({
           </div>
 
           <form onSubmit={handleFormSubmit} className="form-content-scrollable">
+            {/* Store Identification (Shows if pre-selected) */}
+            {initialStoreId && selectedStore && (
+              <div className="selected-store-banner">
+                <div className="banner-icon"><Store size={18} /></div>
+                <div className="banner-details">
+                  <span className="banner-name">{selectedStore.name}</span>
+                  <span className="banner-id">ID: {selectedStore.id}</span>
+                </div>
+              </div>
+            )}
+
             {/* Store Selection (Hidden if initialStoreId is provided) */}
             {!initialStoreId && (
               <div className="form-section">
@@ -224,7 +242,7 @@ const ActivityForm = ({
                               >
                                 <div className="store-item-info">
                                   <span className="store-name">{s.name}</span>
-                                  {s.area && <span className="store-area">{s.area}</span>}
+                                  <span className="store-id-mini">ID: {s.id}</span>
                                 </div>
                                 {formData.store_id === s.id && <Check size={14} className="selected-check" />}
                               </div>
@@ -341,7 +359,7 @@ const ActivityForm = ({
             {/* Notes & Quick Templates */}
             <div className="form-section">
               <label className="section-label">
-                <span><Clock size={14} /> Interaction Details / تفاصيل التواصل</span>
+                <span><Clock size={14} /> Interaction Details (Optional) / تفاصيل التواصل (اختياري)</span>
               </label>
               <div className="quick-templates-grid">
                 {QUICK_TEMPLATES.map(t => (
@@ -357,11 +375,10 @@ const ActivityForm = ({
               </div>
               <textarea 
                 rows="4" 
-                placeholder="What happened during this interaction? Any specific details or merchant feedback..."
+                placeholder="What happened? Any specific details or feedback... (Optional) / ماذا حدث؟ أي تفاصيل أو ملاحظات... (اختياري)"
                 className="premium-textarea"
                 value={formData.notes}
                 onChange={e => setFormData({...formData, notes: e.target.value})}
-                required
               />
             </div>
 
@@ -382,9 +399,22 @@ const ActivityForm = ({
               </div>
             )}
 
+            {/* Interaction Date - Always Defaults to Today */}
+            <div className="form-section">
+              <label className="section-label">
+                <span><Clock size={14} /> Interaction Date / تاريخ التواصل</span>
+              </label>
+              <input 
+                type="date" 
+                className="premium-date-input"
+                value={formData.interaction_date}
+                onChange={e => setFormData({...formData, interaction_date: e.target.value})}
+              />
+            </div>
+
             {/* Follow-up Section */}
             <div className="form-section">
-              <label className="section-label"><Calendar size={14} /> Next Steps (Optional)</label>
+              <label className="section-label"><Calendar size={14} /> Next Steps (Optional) / الخطوات التالية (اختياري)</label>
               <div className="follow-up-group">
                 <input 
                   type="date" 
@@ -821,6 +851,31 @@ const ActivityForm = ({
             text-align: center; line-height: 1.3;
           }
           .template-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+          .selected-store-banner {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .banner-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: #eff6ff; color: #2563eb;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .banner-details { display: flex; flex-direction: column; }
+          .banner-name { font-size: 0.95rem; font-weight: 800; color: #1e293b; }
+          .banner-id { font-size: 0.7rem; color: #64748b; font-weight: 600; }
+
+          .store-id-mini {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-weight: 700;
+          }
 
           .contextual-history-card {
             background: #f1f5f9;

@@ -4,7 +4,7 @@ import {
   ArrowLeft, Pencil, Check, X, Phone, User, Database, Globe, MapPin,
   ExternalLink, TrendingUp, ShieldCheck,
   Smartphone, Activity, Trash2, Target, Hash, AlertCircle,
-  Power, ShieldOff, Info, Copy, Bookmark
+  Power, ShieldOff, Info, Copy, Bookmark, DollarSign, ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -25,7 +25,19 @@ const StoreProfile = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(store ? { ...store } : {});
   const [activeTab, setActiveTab] = useState('overview');
+  const [activePerfTab, setActivePerfTab] = useState('monthly');
   const [isActivityFormOpen, setIsActivityFormOpen] = useState(false);
+
+  const getStats = () => {
+    if (!store.performance_data || !store.performance_data[activePerfTab] || Object.keys(store.performance_data[activePerfTab]).length === 0) {
+      if (activePerfTab === 'monthly') return store;
+      return null;
+    }
+    return store.performance_data[activePerfTab];
+  };
+
+  const st = getStats();
+
   
   // State for Dialogs
   const [showClosureDialog, setShowClosureDialog] = useState(false);
@@ -288,6 +300,84 @@ const StoreProfile = ({
             <div className="metric-card glass-card"><div className="m-icon blue"><Activity size={20} /></div><div className="m-data"><span className="m-val">{storeActivities.length}</span><span className="m-lab">Total Interactions</span></div></div>
             <div className="metric-card glass-card"><div className="m-icon green"><Target size={20} /></div><div className="m-data"><span className="m-val">{successRate}%</span><span className="m-lab">Resolution Rate</span></div></div>
           </div>
+
+          {(store.gmv !== undefined && store.gmv !== null) && (
+            <div className="section-card glass-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 className="section-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={16} /> Sales & Performance Insights
+                </h3>
+                
+                {/* Tabs inside Store Profile */}
+                <div style={{ display: 'flex', background: 'var(--surface-hover)', borderRadius: '8px', padding: '4px', gap: '4px', border: '1px solid var(--border-color)' }}>
+                  {['monthly', 'commercial', 'yesterday'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActivePerfTab(tab)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: activePerfTab === tab ? '#e0e7ff' : 'transparent',
+                        color: activePerfTab === tab ? '#4f46e5' : 'var(--text-dim)',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {tab === 'monthly' ? 'شهري' : tab === 'commercial' ? 'تجاري' : 'البارحة'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {!st ? (
+                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)', fontSize: '0.9rem', background: 'var(--surface-hover)', borderRadius: '12px' }}>
+                   لا توجد بيانات متاحة لهذه الفترة...
+                 </div>
+              ) : (
+                <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>إجمالي المبيعات (GMV)</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{Number(st.gmv || 0).toLocaleString()} <span style={{ fontSize: '0.7rem' }}>د.ع</span></div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>الطلبات (Orders)</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#4f46e5' }}>{Number(st.orders || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div className="info-fields-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Avg. Cart:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.avg_cart || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Items Total:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.items_total || 0).toLocaleString()}</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MV:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mv || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MVH:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mvh || 0).toLocaleString()} د.ع</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MV %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mv_percent || 0)}%</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MVH %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mvh_percent || 0)}%</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Highlights:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.highlights || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.hl_percent || 0)}%</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>New HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.new_hl_percent || 0)}%</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Credits Use:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.store_credits_use || 0).toLocaleString()}</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount Amount:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_amount || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_percent || 0)}%</span></div>
+                  
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Delivery:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.delivery || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Ratings:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}>{st.ratings || '-'} ★</span></div>
+
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Orders %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.orders_percent || 0)}%</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Toters+ %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.toters_plus_percent || 0)}%</span></div>
+                </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="section-card glass-card">
             <h3 className="section-card-title"><Smartphone size={16} /> Technical Infrastructure</h3>

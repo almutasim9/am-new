@@ -81,6 +81,9 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
         <button className={`nav-link ${activeTab === 'stats' ? 'active' : ''}`} onClick={() => setActiveTab('stats')}>
           <BarChart3 size={20} /> Statistics
         </button>
+        <button className={`nav-link ${activeTab === 'performance' ? 'active' : ''}`} onClick={() => setActiveTab('performance')}>
+          <TrendingUp size={20} /> Performance
+        </button>
         <button className={`nav-link ${activeTab === 'target' ? 'active' : ''}`} onClick={() => setActiveTab('target')}>
           <Target size={20} /> Target
         </button>

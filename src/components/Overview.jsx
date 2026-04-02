@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   Target, Users, CheckCircle, Clock, ArrowRight, AlertCircle,
-  Calendar, TrendingUp, Zap, PhoneCall, Activity, Star
+  Calendar, TrendingUp, Zap, PhoneCall, Activity, Star, Store
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getOverdueActivities } from '../services/notificationService';
@@ -137,12 +137,18 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       {/* ── Stat Cards ── */}
       <div className="stats-grid">
         <StatCard
-
           icon={Users}
           label="المتاجر النشطة"
           value={stats.totalStores}
           color="var(--primary-color)"
           delay={0.05}
+        />
+        <StatCard
+          icon={Store}
+          label="المتاجر الغير نشطة"
+          value={stats.inactiveStores}
+          color="var(--text-dim)"
+          delay={0.07}
         />
         <StatCard
           icon={Activity}

@@ -55,6 +55,16 @@ export const storeService = {
     const { data, error } = await supabase.from('stores').upsert(storesList).select();
     if (error) throw error;
     return data;
+  },
+  async bulkUpdateMetrics(metricsData) {
+    // metricsData is an array of objects: { id, orders, gmv, ratings, avg_cart, discount, delivery, last_sync_date }
+    // Using Promise.all for updates since Supabase single-call bulk update with varying row values is tricky via JS client
+    // without an exposed RPC function.
+    const promises = metricsData.map(item => 
+      supabase.from('stores').update(item).eq('id', item.id)
+    );
+    await Promise.all(promises);
+    return true;
   }
 };
 

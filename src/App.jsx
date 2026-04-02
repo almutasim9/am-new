@@ -19,6 +19,7 @@ import { supabase } from './supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import GlobalSearch from './components/GlobalSearch';
+import PerformanceDashboard from './components/PerformanceDashboard';
 
 import ActivityForm from './components/ActivityForm';
 
@@ -55,6 +56,7 @@ function App() {
 
   const stats = {
     totalStores: stores.filter(s => s.is_active && !s.deleted_at).length,
+    inactiveStores: stores.filter(s => !s.is_active && !s.deleted_at).length,
     totalActivities: activities.length,
     pendingTasks: activities.filter(a => !a.is_resolved).length,
     completedTasks: activities.filter(a => a.is_resolved).length
@@ -435,6 +437,7 @@ function App() {
       );
       case 'activities': return <ActivityLog activities={activities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
       case 'stats': return <Stats calls={activities} outcomes={outcomes} stores={stores} />;
+      case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} />;
       case 'target': return <TargetSection activities={activities} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
       case 'recycle': return (
