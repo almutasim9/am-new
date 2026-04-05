@@ -4,11 +4,14 @@ import { motion } from 'framer-motion';
 import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star, Search } from 'lucide-react';
 import { storeService } from '../services/api';
 
-const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
+const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddStore }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportStats, setReportStats] = useState(null);
   const [unmatchedStores, setUnmatchedStores] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
+  const [quickAddStore, setQuickAddStore] = useState(null); // { id, name } being added
+  const [quickAddForm, setQuickAddForm] = useState({ zone: '', category: '', owner_name: '', phone: '' });
+  const [isAdding, setIsAdding] = useState(false);
   const [activeTab, setActiveTab] = useState('monthly');
   const [perfSearch, setPerfSearch] = useState('');
   const [compareIds, setCompareIds] = useState([]);
@@ -55,6 +58,26 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
     : 0;
   
   const discountRatio = totalGMV > 0 ? ((totalDiscount / totalGMV) * 100).toFixed(1) : 0;
+
+  const handleQuickAdd = async () => {
+    if (!quickAddStore || !onAddStore) return;
+    setIsAdding(true);
+    await onAddStore({
+      id: quickAddStore.id === '—' ? '' : quickAddStore.id,
+      name: quickAddStore.name,
+      zone: quickAddForm.zone,
+      category: quickAddForm.category,
+      owner_name: quickAddForm.owner_name,
+      phone: quickAddForm.phone,
+      area: '', address: '', map_link: '', brand_id: '', cashier_phone: '',
+      accounts_manager_phone: '', restaurant_manager_phone: '',
+      has_pos: false, has_sim: false, is_active: true
+    });
+    setIsAdding(false);
+    setQuickAddStore(null);
+    setQuickAddForm({ zone: '', category: '', owner_name: '', phone: '' });
+    setUnmatchedStores(prev => prev.filter(s => s.name !== quickAddStore.name));
+  };
 
   const formatPercent = (val) => {
     if (!val) return '0%';
@@ -346,35 +369,79 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
               ✕
             </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
             {unmatchedStores.map((s, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '8px 12px',
-                background: 'var(--surface-color)',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                fontSize: '0.85rem'
-              }}>
-                <span style={{ fontWeight: 600, flex: 1 }}>{s.name}</span>
-                <span style={{ fontFamily: 'monospace', color: 'var(--text-dim)', fontSize: '0.8rem', background: 'var(--surface-hover)', padding: '2px 8px', borderRadius: '6px' }}>
-                  {s.id}
-                </span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(s.id);
-                    setCopiedId(s.id);
-                    setTimeout(() => setCopiedId(null), 2000);
-                  }}
-                  style={{
-                    padding: '4px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                    background: copiedId === s.id ? 'var(--success)' : 'var(--primary-light)',
-                    color: copiedId === s.id ? 'white' : 'var(--primary-color)',
-                    fontWeight: 600, fontSize: '0.75rem', transition: 'all 0.2s'
-                  }}
-                >
-                  {copiedId === s.id ? '✓ تم النسخ' : 'نسخ ID'}
-                </button>
+              <div key={i} style={{ borderRadius: '10px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                {/* Store row */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '8px 12px',
+                  background: 'var(--surface-color)',
+                  fontSize: '0.85rem'
+                }}>
+                  <span style={{ fontWeight: 600, flex: 1 }}>{s.name}</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--text-dim)', fontSize: '0.8rem', background: 'var(--surface-hover)', padding: '2px 8px', borderRadius: '6px' }}>
+                    {s.id}
+                  </span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(s.id); setCopiedId(s.id); setTimeout(() => setCopiedId(null), 2000); }}
+                    style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer', background: copiedId === s.id ? 'var(--success)' : 'var(--primary-light)', color: copiedId === s.id ? 'white' : 'var(--primary-color)', fontWeight: 600, fontSize: '0.75rem', transition: 'all 0.2s' }}
+                  >
+                    {copiedId === s.id ? '✓ تم النسخ' : 'نسخ ID'}
+                  </button>
+                  {onAddStore && (
+                    <button
+                      onClick={() => {
+                        if (quickAddStore?.name === s.name) { setQuickAddStore(null); return; }
+                        setQuickAddStore(s);
+                        setQuickAddForm({ zone: '', category: '', owner_name: '', phone: '' });
+                      }}
+                      style={{
+                        padding: '4px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                        background: quickAddStore?.name === s.name ? '#fef3c7' : '#dcfce7',
+                        color: quickAddStore?.name === s.name ? '#92400e' : '#15803d',
+                        fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {quickAddStore?.name === s.name ? '✕ إلغاء' : '+ إضافة'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick-add inline form */}
+                {quickAddStore?.name === s.name && (
+                  <div style={{ padding: '12px', background: '#f0fdf4', borderTop: '1px solid #bbf7d0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                      {[
+                        { key: 'zone',       placeholder: 'المنطقة (Zone) *' },
+                        { key: 'category',   placeholder: 'الفئة (Category)' },
+                        { key: 'owner_name', placeholder: 'اسم المالك (Owner)' },
+                        { key: 'phone',      placeholder: 'رقم الهاتف (Phone)' },
+                      ].map(f => (
+                        <input
+                          key={f.key}
+                          type="text"
+                          placeholder={f.placeholder}
+                          value={quickAddForm[f.key]}
+                          onChange={e => setQuickAddForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                          style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #86efac', fontSize: '0.82rem', background: 'white', outline: 'none', color: 'var(--text-primary)' }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#15803d', flex: 1, display: 'flex', alignItems: 'center' }}>
+                        ID: <strong style={{ marginRight: '4px', fontFamily: 'monospace' }}>{s.id}</strong> — Name: <strong style={{ marginRight: '4px' }}>{s.name}</strong>
+                      </div>
+                      <button
+                        onClick={handleQuickAdd}
+                        disabled={isAdding}
+                        style={{ padding: '6px 18px', borderRadius: '8px', border: 'none', cursor: isAdding ? 'not-allowed' : 'pointer', background: 'var(--success)', color: 'white', fontWeight: 700, fontSize: '0.82rem', opacity: isAdding ? 0.7 : 1 }}
+                      >
+                        {isAdding ? 'جاري الإضافة...' : '✓ إضافة الآن'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -443,7 +443,7 @@ function App() {
       );
       case 'activities': return <ActivityLog activities={activities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
       case 'stats': return <Stats calls={activities} outcomes={outcomes} stores={stores} />;
-      case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} />;
+      case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} onAddStore={addStore} />;
       case 'target': return <TargetSection activities={activities} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
       case 'recycle': return (
