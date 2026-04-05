@@ -7,6 +7,8 @@ import { storeService } from '../services/api';
 const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportStats, setReportStats] = useState(null);
+  const [unmatchedStores, setUnmatchedStores] = useState([]);
+  const [copiedId, setCopiedId] = useState(null);
   const [activeTab, setActiveTab] = useState('monthly'); // 'monthly', 'commercial', 'yesterday'
 
   const getStats = (store) => {
@@ -85,6 +87,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
       });
 
       let anyMatched = 0;
+      const unmatchedMap = {}; // key: storeIdRaw or storeNameRaw → { id, name }
 
       const sheetTypes = [
         { key: 'monthly', searchFor: 'Monthly Calendar', label: 'شهري' },
@@ -168,6 +171,13 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
             );
           }
 
+          if (!dbStore) {
+            const key = storeIdRaw || storeNameRaw;
+            if (!unmatchedMap[key]) {
+              unmatchedMap[key] = { id: storeIdRaw || '—', name: storeNameRaw };
+            }
+          }
+
           if (dbStore) {
             anyMatched++;
 
@@ -202,6 +212,8 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
           }
         }
       }
+
+      setUnmatchedStores(Object.values(unmatchedMap));
 
       // Filter out stores that didn't receive ANY updates (i.e. they are just empty states)
       // Actually, if we want to wipe them, we SHOULD upload them!
@@ -294,6 +306,67 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
           </label>
         </div>
       </div>
+
+      {/* Unmatched Stores Panel */}
+      {unmatchedStores.length > 0 && (
+        <div className="glass-card" style={{
+          marginBottom: '1.5rem',
+          padding: '1.25rem 1.5rem',
+          borderLeft: '4px solid var(--warning, #f59e0b)',
+          background: 'rgba(245,158,11,0.05)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle size={18} color="#f59e0b" />
+                {unmatchedStores.length} متجر في الملف غير موجود في قاعدة البيانات
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                انسخ الـ ID وأضف المتجر من صفحة المتاجر
+              </div>
+            </div>
+            <button
+              onClick={() => setUnmatchedStores([])}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '4px' }}
+              title="إغلاق"
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+            {unmatchedStores.map((s, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '8px 12px',
+                background: 'var(--surface-color)',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.85rem'
+              }}>
+                <span style={{ fontWeight: 600, flex: 1 }}>{s.name}</span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--text-dim)', fontSize: '0.8rem', background: 'var(--surface-hover)', padding: '2px 8px', borderRadius: '6px' }}>
+                  {s.id}
+                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(s.id);
+                    setCopiedId(s.id);
+                    setTimeout(() => setCopiedId(null), 2000);
+                  }}
+                  style={{
+                    padding: '4px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                    background: copiedId === s.id ? 'var(--success)' : 'var(--primary-light)',
+                    color: copiedId === s.id ? 'white' : 'var(--primary-color)',
+                    fontWeight: 600, fontSize: '0.75rem', transition: 'all 0.2s'
+                  }}
+                >
+                  {copiedId === s.id ? '✓ تم النسخ' : 'نسخ ID'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
         {/* Global Stats Card */}
