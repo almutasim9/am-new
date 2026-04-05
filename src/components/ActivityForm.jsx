@@ -386,13 +386,13 @@ const ActivityForm = ({
             {formData.store_id && merchantHistory.length > 0 && (
               <div className="contextual-history-card">
                 <div className="history-header">
-                  <Clock size={12} /> RECENT LOGS FOR {selectedStore?.name.toUpperCase()}
+                  <Clock size={12} /> RECENT LOGS FOR {selectedStore?.name?.toUpperCase()}
                 </div>
                 <div className="history-items">
                   {merchantHistory.map(h => (
                     <div key={h.id} className="history-item-mini">
                       <span className="h-date">{format(new Date(h.created_at), 'MMM d')}:</span>
-                      <span className="h-notes">{h.notes}</span>
+                      <span className="h-notes">{h.notes || '—'}</span>
                     </div>
                   ))}
                 </div>

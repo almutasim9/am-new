@@ -395,7 +395,7 @@ function App() {
           if (!lastNotifiedRef.current.has(task.id)) {
             showNotification(
               `Reminder: ${task.storeName}`,
-              `Follow-up due: ${task.notes.substring(0, 50)}...`
+              `Follow-up due: ${(task.notes || '').substring(0, 50)}...`
             );
             lastNotifiedRef.current.add(task.id);
           }

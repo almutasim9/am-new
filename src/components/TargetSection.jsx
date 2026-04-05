@@ -93,10 +93,10 @@ const TargetSection = ({ activities }) => {
     const totalWorkDays = weekDays.filter(isWorkDay).length;
     const workDaysPassed = weekDays.filter(d => d <= now && isWorkDay(d)).length;
 
-    const dailyTarget = target.weekly_goal / totalWorkDays;
+    const dailyTarget = totalWorkDays > 0 ? target.weekly_goal / totalWorkDays : 0;
     const expectedSoFar = dailyTarget * workDaysPassed;
-    
-    const weeklyProgress = (weekCalls.length / target.weekly_goal) * 100;
+
+    const weeklyProgress = target.weekly_goal > 0 ? (weekCalls.length / target.weekly_goal) * 100 : 0;
     const status = todayCalls >= dailyTarget ? 'exceeded' : 'on-track';
     const difference = todayCalls - dailyTarget;
 

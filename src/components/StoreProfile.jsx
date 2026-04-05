@@ -341,7 +341,7 @@ const StoreProfile = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>إجمالي المبيعات (GMV)</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{Number(st.gmv || 0).toLocaleString()} <span style={{ fontSize: '0.7rem' }}>د.ع</span></div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{Number(st.gmv || 0).toLocaleString()} <span style={{ fontSize: '0.7rem' }}>IQD</span></div>
                   </div>
                   <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>الطلبات (Orders)</div>
@@ -350,25 +350,25 @@ const StoreProfile = ({
                 </div>
 
                 <div className="info-fields-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Avg. Cart:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.avg_cart || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Avg. Cart:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.avg_cart || 0).toLocaleString()} IQD</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Items Total:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.items_total || 0).toLocaleString()}</span></div>
                   
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MV:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mv || 0).toLocaleString()} د.ع</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MVH:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mvh || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MV:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mv || 0).toLocaleString()} IQD</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MVH:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mvh || 0).toLocaleString()} IQD</span></div>
                   
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MV %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mv_percent || 0)}%</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MVH %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mvh_percent || 0)}%</span></div>
                   
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Highlights:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.highlights || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Highlights:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.highlights || 0).toLocaleString()} IQD</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.hl_percent || 0)}%</span></div>
                   
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>New HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.new_hl_percent || 0)}%</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Credits Use:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.store_credits_use || 0).toLocaleString()}</span></div>
                   
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount Amount:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_amount || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount Amount:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_amount || 0).toLocaleString()} IQD</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_percent || 0)}%</span></div>
                   
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Delivery:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.delivery || 0).toLocaleString()} د.ع</span></div>
+                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Delivery:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.delivery || 0).toLocaleString()} IQD</span></div>
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Ratings:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}>{st.ratings || '-'} ★</span></div>
 
                   <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Orders %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.orders_percent || 0)}%</span></div>

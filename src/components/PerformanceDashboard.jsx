@@ -299,8 +299,8 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
         {/* Global Stats Card */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--success)' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><DollarSign size={16} style={{ display: 'inline' }} /> إجمالي GMV</p>
-            <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)' }}>{totalGMV.toLocaleString()} د.ع</h4>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}>إجمالي GMV (IQD)</p>
+            <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)' }}>{totalGMV.toLocaleString()} IQD</h4>
           </div>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary-color)' }}>
             <p className="stat-label" style={{ marginBottom: '0.5rem' }}><ShoppingCart size={16} style={{ display: 'inline' }} /> إجمالي الطلبات</p>
@@ -365,7 +365,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
                         </td>
                         
                         <td style={{ padding: '14px 16px', color: 'var(--success)', fontWeight: 800 }}>
-                          {formatCurrency(st.gmv)} <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 400 }}>د.ع</span>
+                          {formatCurrency(st.gmv)} <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 400 }}>IQD</span>
                         </td>
                         
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem' }}>
