@@ -47,6 +47,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [libraryError, setLibraryError] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('mp_sidebar_collapsed') === 'true');
   const lastNotifiedRef = useRef(new Set());
 
   const notify = useCallback((type, message) => {
@@ -490,6 +491,12 @@ function App() {
         user={currentUser}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => {
+          const next = !prev;
+          localStorage.setItem('mp_sidebar_collapsed', String(next));
+          return next;
+        })}
       />
 
       <div 
