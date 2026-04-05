@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { motion } from 'framer-motion';
-import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star } from 'lucide-react';
+import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star, Search } from 'lucide-react';
 import { storeService } from '../services/api';
 
 const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
@@ -9,7 +9,10 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
   const [reportStats, setReportStats] = useState(null);
   const [unmatchedStores, setUnmatchedStores] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
-  const [activeTab, setActiveTab] = useState('monthly'); // 'monthly', 'commercial', 'yesterday'
+  const [activeTab, setActiveTab] = useState('monthly');
+  const [perfSearch, setPerfSearch] = useState('');
+  const [compareIds, setCompareIds] = useState([]);
+  const [compareMode, setCompareMode] = useState(false);
 
   const getStats = (store) => {
     // defaults back to root fields if performance_data is not ready
@@ -32,6 +35,16 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
     const st = getStats(s);
     return st.gmv !== undefined && st.gmv !== null && Number(st.gmv) > 0;
   }).sort((a, b) => Number(getStats(b).gmv) - Number(getStats(a).gmv));
+
+  const filteredPerfStores = perfSearch
+    ? performingStores.filter(s => s.name.toLowerCase().includes(perfSearch.toLowerCase()) || String(s.id).includes(perfSearch))
+    : performingStores;
+
+  const toggleCompare = (id) => {
+    setCompareIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 2 ? [...prev, id] : prev
+    );
+  };
 
   const totalGMV = stores.reduce((acc, s) => acc + Number(getStats(s).gmv || 0), 0);
   const totalOrders = stores.reduce((acc, s) => acc + Number(getStats(s).orders || 0), 0);
@@ -391,10 +404,85 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
 
           {/* Table of performance */}
           <div className="glass-card" style={{ padding: '1.5rem', flex: 1 }}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BarChart3 size={20} color="var(--primary-color)" /> أفضل المتاجر أداءً
-            </h3>
-            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <BarChart3 size={20} color="var(--primary-color)" /> أفضل المتاجر أداءً
+                {filteredPerfStores.length !== performingStores.length && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>({filteredPerfStores.length} من {performingStores.length})</span>
+                )}
+              </h3>
+              {/* Search */}
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  placeholder="بحث عن متجر..."
+                  value={perfSearch}
+                  onChange={e => setPerfSearch(e.target.value)}
+                  style={{
+                    padding: '8px 32px 8px 12px', borderRadius: '10px', border: '1px solid var(--border-color)',
+                    background: 'var(--surface-color)', fontSize: '0.85rem', color: 'var(--text-primary)',
+                    width: '200px', outline: 'none'
+                  }}
+                />
+              </div>
+              {/* Compare toggle */}
+              <button
+                onClick={() => { setCompareMode(m => !m); setCompareIds([]); }}
+                style={{
+                  padding: '8px 16px', borderRadius: '10px', border: '1px solid var(--border-color)',
+                  background: compareMode ? 'var(--primary-color)' : 'var(--surface-color)',
+                  color: compareMode ? 'white' : 'var(--text-secondary)',
+                  fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <BarChart3 size={15} /> {compareMode ? 'إلغاء المقارنة' : 'مقارنة'}
+              </button>
+            </div>
+
+            {/* Compare Panel */}
+            {compareMode && compareIds.length === 2 && (() => {
+              const storeA = stores.find(s => s.id === compareIds[0]);
+              const storeB = stores.find(s => s.id === compareIds[1]);
+              if (!storeA || !storeB) return null;
+              const stA = getStats(storeA);
+              const stB = getStats(storeB);
+              const metrics = [
+                { label: 'GMV (IQD)', a: Number(stA.gmv || 0), b: Number(stB.gmv || 0), fmt: v => v.toLocaleString() },
+                { label: 'الطلبات', a: Number(stA.orders || 0), b: Number(stB.orders || 0), fmt: v => v.toLocaleString() },
+                { label: 'متوسط السلة', a: Number(stA.avg_cart || 0), b: Number(stB.avg_cart || 0), fmt: v => v.toLocaleString() },
+                { label: 'التقييم', a: Number(stA.ratings || 0), b: Number(stB.ratings || 0), fmt: v => v.toFixed(1) },
+                { label: 'MV %', a: Number(stA.mv_percent || 0), b: Number(stB.mv_percent || 0), fmt: v => formatPercent(v) },
+                { label: 'HL %', a: Number(stA.hl_percent || 0), b: Number(stB.hl_percent || 0), fmt: v => formatPercent(v) },
+                { label: 'Discount', a: Number(stA.discount_amount || 0), b: Number(stB.discount_amount || 0), fmt: v => v.toLocaleString(), lowerIsBetter: true },
+              ];
+              return (
+                <div style={{ marginBottom: '1.5rem', background: 'var(--surface-hover)', borderRadius: '14px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'var(--primary-color)', color: 'white', padding: '12px 16px', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center' }}>
+                    <span style={{ textAlign: 'right' }}>{storeA.name}</span>
+                    <span>مقارنة</span>
+                    <span style={{ textAlign: 'left' }}>{storeB.name}</span>
+                  </div>
+                  {metrics.map(m => {
+                    const aWins = m.lowerIsBetter ? m.a < m.b : m.a > m.b;
+                    const bWins = m.lowerIsBetter ? m.b < m.a : m.b > m.a;
+                    return (
+                      <div key={m.label} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '10px 16px', borderBottom: '1px solid var(--border-color)', fontSize: '0.85rem', textAlign: 'center', alignItems: 'center' }}>
+                        <span style={{ fontWeight: aWins ? 800 : 400, color: aWins ? 'var(--success)' : 'var(--text-secondary)', textAlign: 'right' }}>{m.fmt(m.a)}</span>
+                        <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 600 }}>{m.label}</span>
+                        <span style={{ fontWeight: bWins ? 800 : 400, color: bWins ? 'var(--success)' : 'var(--text-secondary)', textAlign: 'left' }}>{m.fmt(m.b)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {compareMode && compareIds.length < 2 && (
+              <div style={{ padding: '10px 14px', background: 'var(--primary-light)', borderRadius: '10px', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
+                اختر {compareIds.length === 0 ? 'متجرين' : 'متجر واحد آخر'} من الجدول للمقارنة
+              </div>
+            )}
+
             {performingStores.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-dim)' }}>
                 لا توجد بيانات مبيعات. قم برفع التقرير لعرض المتاجر.
@@ -404,6 +492,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', textAlign: 'right' }}>
                   <thead style={{ whiteSpace: 'nowrap' }}>
                     <tr style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {compareMode && <th style={{ padding: '8px 8px' }}></th>}
                       <th style={{ padding: '8px 16px', position: 'sticky', right: 0, background: 'var(--surface-color, #fff)', zIndex: 1 }}>المتجر</th>
                       <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>الطلبات</th>
                       <th style={{ padding: '8px 16px' }}>GMV</th>
@@ -420,14 +509,29 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {performingStores.map((s, idx) => {
+                    {filteredPerfStores.map((s, idx) => {
                       const st = getStats(s);
+                      const isSelected = compareIds.includes(s.id);
                       return (
-                      <tr key={s.id} style={{ background: 'var(--surface-hover)', whiteSpace: 'nowrap', transition: 'all 0.2s', cursor: 'default' }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}>
-                        
-                        <td style={{ padding: '14px 16px', fontWeight: 700, position: 'sticky', right: 0, background: 'var(--surface-hover)', zIndex: 1, borderRadius: '0 8px 8px 0', borderLeft: '2px solid var(--primary-light)' }}>
+                      <tr key={s.id}
+                          onClick={compareMode ? () => toggleCompare(s.id) : undefined}
+                          style={{
+                            background: isSelected ? 'var(--primary-light)' : 'var(--surface-hover)',
+                            whiteSpace: 'nowrap', transition: 'all 0.2s',
+                            cursor: compareMode ? 'pointer' : 'default',
+                            outline: isSelected ? '2px solid var(--primary-color)' : 'none',
+                            borderRadius: '8px'
+                          }}
+                          onMouseEnter={(e) => { if (!compareMode) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { if (!compareMode) e.currentTarget.style.transform = 'none'; }}>
+
+                        {compareMode && (
+                          <td style={{ padding: '14px 8px' }}>
+                            <input type="checkbox" readOnly checked={isSelected}
+                              style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)', cursor: 'pointer' }} />
+                          </td>
+                        )}
+                        <td style={{ padding: '14px 16px', fontWeight: 700, position: 'sticky', right: 0, background: isSelected ? 'var(--primary-light)' : 'var(--surface-hover)', zIndex: 1, borderRadius: '0 8px 8px 0', borderLeft: '2px solid var(--primary-light)' }}>
                           {s.name}
                         </td>
                         

@@ -185,6 +185,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                     </th>
                     <th>Time</th>
                     <th>Store / Contact</th>
+                    <th>Type</th>
                     <th>Activity Status</th>
                     <th>Details</th>
                     <th>Follow-up</th>
@@ -211,6 +212,11 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                       <td style={{ width: '200px' }}>
                         <div style={{ fontWeight: 600 }}>{getStoreName(act.store_id)}</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{act.store_id}</div>
+                      </td>
+                      <td style={{ width: '80px' }}>
+                        <span title={act.contact_type || 'call'} style={{ fontSize: '1.1rem' }}>
+                          {act.contact_type === 'visit' ? '🚗' : act.contact_type === 'whatsapp' ? '💬' : act.contact_type === 'online' ? '🌐' : '📞'}
+                        </span>
                       </td>
                       <td style={{ width: '180px' }}>
                         <span className="tag" style={{ background: 'var(--primary-light)', border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }}>

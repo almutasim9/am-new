@@ -152,6 +152,38 @@ const StoreList = ({
     setTimeout(() => document.body.removeChild(a), 100);
   };
 
+  const handleExportFieldList = () => {
+    const activeStores = stores.filter(s => !s.deleted_at && s.is_active !== false);
+    const exportData = activeStores.map((s, i) => ({
+      '#': i + 1,
+      'Store ID': s.id,
+      'Store Name': s.name,
+      'Owner': s.owner_name || '',
+      'Phone': s.phone || '',
+      'Cashier Phone': s.cashier_phone || '',
+      'Manager Phone': s.restaurant_manager_phone || '',
+      'Zone': s.zone || '',
+      'Area': s.area || '',
+      'Category': s.category || '',
+      'Address': s.address || '',
+      'Map Link': s.map_link || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    ws['!cols'] = [
+      { wch: 4 }, { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 16 },
+      { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 36 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Field List');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const a = document.createElement('a');
+    a.href = 'data:application/octet-stream;base64,' + wbout;
+    a.download = `field-list-${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onAddStore(newStore);
@@ -177,6 +209,9 @@ const StoreList = ({
               </div>
               
               <div className="header-actions">
+                <button className="btn-secondary sm" onClick={handleExportFieldList} title="تصدير قائمة الاتصال الميداني">
+                  <FileDown size={14} /> <span className="desktop-only text-sm">Field List</span>
+                </button>
                 <button className="btn-secondary sm" onClick={handleDownloadTemplate}>
                   <FileDown size={14} /> <span className="desktop-only text-sm">Template</span>
                 </button>

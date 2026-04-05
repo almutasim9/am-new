@@ -4,6 +4,7 @@ import {
   Calendar, TrendingUp, Zap, PhoneCall, Activity, Star, Store
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from 'date-fns';
 import { getOverdueActivities } from '../services/notificationService';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -98,6 +99,45 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     { label: 'تقارير الأداء',   icon: TrendingUp,  tab: 'stats',      color: '#10b981'              },
     { label: 'الهدف الأسبوعي',  icon: Target,      tab: 'target',     color: '#f59e0b'              },
   ];
+
+  // ── Monthly self-report ───────────────────────────────────────────────────
+  const monthlyReport = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+
+    const monthActivities = activities.filter(a => {
+      try {
+        return isWithinInterval(new Date(a.created_at), { start: startOfDay(monthStart), end: endOfDay(monthEnd) });
+      } catch { return false; }
+    });
+
+    const uniqueStores = new Set(monthActivities.map(a => a.store_id)).size;
+    const resolved = monthActivities.filter(a => a.is_resolved).length;
+    const completionPct = monthActivities.length > 0 ? Math.round((resolved / monthActivities.length) * 100) : 0;
+
+    // Work days passed this month (Sun–Thu)
+    const allDays = eachDayOfInterval({ start: monthStart, end: now });
+    const workDaysPassed = allDays.filter(d => { const day = d.getDay(); return day >= 0 && day <= 4; }).length;
+    const avgPerDay = workDaysPassed > 0 ? (monthActivities.length / workDaysPassed).toFixed(1) : '0';
+
+    // Top outcome
+    const outcomeCounts = monthActivities.reduce((acc, a) => {
+      acc[a.outcome_id] = (acc[a.outcome_id] || 0) + 1;
+      return acc;
+    }, {});
+    const topOutcomeId = Object.entries(outcomeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    // Contact type breakdown
+    const byType = {
+      call:     monthActivities.filter(a => !a.contact_type || a.contact_type === 'call').length,
+      visit:    monthActivities.filter(a => a.contact_type === 'visit').length,
+      whatsapp: monthActivities.filter(a => a.contact_type === 'whatsapp').length,
+      online:   monthActivities.filter(a => a.contact_type === 'online').length,
+    };
+
+    return { total: monthActivities.length, uniqueStores, resolved, completionPct, avgPerDay, topOutcomeId, byType, workDaysPassed };
+  }, [activities]);
 
   return (
     <div className="section-container">
@@ -410,12 +450,49 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
           </div>
         </motion.div>
 
+      {/* ── Monthly AM Self-Report ── */}
+      {monthlyReport.total > 0 && (
+        <motion.div className="glass-card" style={{ padding: '1.75rem', marginTop: '1.5rem' }} {...fadeUp(0.4)}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={18} color="var(--primary-color)" />
+            تقريرك الشهري — {new Date().toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+            {[
+              { label: 'إجمالي النشاطات', value: monthlyReport.total, color: 'var(--primary-color)' },
+              { label: 'متاجر تم تغطيتها', value: monthlyReport.uniqueStores, color: 'var(--accent-color)' },
+              { label: 'نسبة الإنجاز', value: `${monthlyReport.completionPct}%`, color: 'var(--success)' },
+              { label: 'معدل يومي', value: monthlyReport.avgPerDay, color: '#f59e0b' },
+            ].map(item => (
+              <div key={item.label} style={{ padding: '1rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: item.color }}>{item.value}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px', fontWeight: 600 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          {(monthlyReport.byType.call > 0 || monthlyReport.byType.visit > 0 || monthlyReport.byType.whatsapp > 0 || monthlyReport.byType.online > 0) && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '1rem' }}>
+              {[
+                { label: `📞 ${monthlyReport.byType.call} مكالمة`, show: monthlyReport.byType.call > 0 },
+                { label: `🚗 ${monthlyReport.byType.visit} زيارة`, show: monthlyReport.byType.visit > 0 },
+                { label: `💬 ${monthlyReport.byType.whatsapp} واتساب`, show: monthlyReport.byType.whatsapp > 0 },
+                { label: `🌐 ${monthlyReport.byType.online} أونلاين`, show: monthlyReport.byType.online > 0 },
+              ].filter(t => t.show).map(t => (
+                <span key={t.label} style={{ padding: '4px 12px', borderRadius: '20px', background: 'var(--primary-light)', color: 'var(--primary-color)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  {t.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
+
       </div>
       <style>{`
-        .stats-grid { 
-          display: grid; 
-          grid-template-columns: repeat(2, 1fr); 
-          gap: 0.75rem; 
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
         }
         .quick-actions-grid { 
           display: grid; 

@@ -60,7 +60,8 @@ const ActivityForm = ({
     outcome_id: outcomes[0]?.id || '',
     notes: '',
     follow_up_date: '',
-    is_resolved: false
+    is_resolved: false,
+    contact_type: 'call'
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,7 +127,8 @@ const ActivityForm = ({
       outcome_id: outcomes[0]?.id || '',
       notes: '',
       follow_up_date: '',
-      is_resolved: false
+      is_resolved: false,
+      contact_type: 'call'
     });
     onClose();
   };
@@ -267,6 +269,37 @@ const ActivityForm = ({
                 </div>
               </div>
             )}
+
+            {/* Contact Type */}
+            <div className="form-section">
+              <label className="section-label">
+                <span><Send size={14} /> نوع التواصل / Contact Type</span>
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { value: 'call',    label: '📞 مكالمة', labelEn: 'Phone Call' },
+                  { value: 'visit',   label: '🚗 زيارة',  labelEn: 'Field Visit' },
+                  { value: 'whatsapp',label: '💬 واتساب', labelEn: 'WhatsApp'   },
+                  { value: 'online',  label: '🌐 أونلاين',labelEn: 'Online'     },
+                ].map(ct => (
+                  <button
+                    key={ct.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, contact_type: ct.value }))}
+                    style={{
+                      padding: '8px 16px', borderRadius: '10px', border: '2px solid',
+                      borderColor: formData.contact_type === ct.value ? 'var(--primary-color)' : 'var(--border-color)',
+                      background: formData.contact_type === ct.value ? 'var(--primary-light)' : 'transparent',
+                      color: formData.contact_type === ct.value ? 'var(--primary-color)' : 'var(--text-secondary)',
+                      fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.15s',
+                      minHeight: '44px'
+                    }}
+                  >
+                    {ct.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Outcome Selection - Modern Hybrid */}
             <div className="form-section">

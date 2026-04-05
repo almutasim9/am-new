@@ -67,6 +67,22 @@ const Stats = ({ calls, outcomes, stores }) => {
     return categories.map(cat => ({ name: cat, value: stores.filter(s => s.category === cat).length }));
   }, [stores]);
 
+  const contactTypeData = React.useMemo(() => {
+    const types = [
+      { value: 'call',     label: '📞 مكالمة',  color: '#4f46e5' },
+      { value: 'visit',    label: '🚗 زيارة',   color: '#10b981' },
+      { value: 'whatsapp', label: '💬 واتساب',  color: '#22c55e' },
+      { value: 'online',   label: '🌐 أونلاين', color: '#0ea5e9' },
+    ];
+    const hasAny = filteredCalls.some(c => c.contact_type);
+    if (!hasAny) return [];
+    return types.map(t => ({
+      name: t.label,
+      value: filteredCalls.filter(c => (c.contact_type || 'call') === t.value).length,
+      color: t.color
+    })).filter(d => d.value > 0);
+  }, [filteredCalls]);
+
   return (
     <div className="section-container">
       <div className="section-header" style={{ marginBottom: '1rem' }}>
@@ -280,6 +296,30 @@ const Stats = ({ calls, outcomes, stores }) => {
             </ResponsiveContainer>
           </div>
         </motion.div>
+
+        {contactTypeData.length > 0 && (
+          <motion.div
+            className="glass-card stats-chart-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>نوع التواصل / Contact Type</h3>
+            <div className="stats-chart-inner">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={contactTypeData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {contactTypeData.map((entry, index) => (
+                      <Cell key={`ct-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-lg)' }} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
