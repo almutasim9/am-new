@@ -256,13 +256,13 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
       // But we only want to wipe them if it's a real upload
       const updatesToUpload = Object.values(updatesMap);
       
-      // Matched stat calculation (how many unique stores actually got real data)
-      const actuallyMatchedCount = updatesToUpload.filter(u => 
-        Object.keys(u.performance_data).some(period => Object.keys(u.performance_data[period]).length > 0)
+      // Active count = stores that have commercial data (GMV > 0 in commercial sheet)
+      const commercialActiveCount = updatesToUpload.filter(u =>
+        u.performance_data?.commercial && Object.keys(u.performance_data.commercial).length > 0
+        && Number(u.performance_data.commercial.gmv || 0) > 0
       ).length;
-      // Filter out stores that are already softly deleted from the mathematical calculation
       const liveStoresCount = stores.filter(s => !s.deleted_at).length;
-      setReportStats({ matched: actuallyMatchedCount, notFound: liveStoresCount - actuallyMatchedCount }); 
+      setReportStats({ matched: commercialActiveCount, notFound: liveStoresCount - commercialActiveCount });
 
       if (anyMatched > 0) {
         await storeService.bulkUpdateMetrics(updatesToUpload);
@@ -321,8 +321,8 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
 
           {reportStats && (
             <div style={{ display: 'flex', gap: '1rem', background: 'var(--surface-color)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>متجر نشط: {reportStats.matched}</span>
-              <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>متجر غير نشط: {reportStats.notFound}</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>متجر نشط (تجاري): {reportStats.matched}</span>
+              <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>غير نشط: {reportStats.notFound}</span>
             </div>
           )}
           
