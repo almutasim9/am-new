@@ -422,7 +422,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
               <div className="export-preview">
                 <span className="export-count">{exportPreviewCount}</span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  {exportPreviewCount === 1 ? 'نشاط سيتم تصديره' : 'نشاط سيتم تصديره'}
+                  {exportPreviewCount === 1 ? 'نشاط سيتم تصديره' : 'نشاط سيتم تصديرهم'}
                 </span>
                 {(exportFrom || exportTo) && (
                   <button

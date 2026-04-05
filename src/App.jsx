@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { LayoutDashboard, Store, ClipboardList, CheckCircle2, PhoneOutgoing, Bell, Loader2, BarChart3, TrendingUp, CalendarCheck, Settings as SettingsIcon, AlertCircle, BellOff, Moon, Sun, Bookmark, X } from 'lucide-react';
 import './App.css';
 import Overview from './components/Overview';
@@ -406,6 +406,11 @@ function App() {
 
 
 
+  const quickLogMerchantHistory = useMemo(
+    () => activities.filter(a => a.store_id === quickLogStore?.id).slice(0, 3),
+    [activities, quickLogStore]
+  );
+
   const renderContent = () => {
     if (loading) return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -540,7 +545,7 @@ function App() {
             setQuickLogStore(null);
           }}
           onClose={() => setQuickLogStore(null)}
-          merchantHistory={activities.filter(a => a.store_id === quickLogStore?.id).slice(0, 3)}
+          merchantHistory={quickLogMerchantHistory}
         />
         </AnimatePresence>
 

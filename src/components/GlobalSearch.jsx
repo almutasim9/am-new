@@ -171,7 +171,7 @@ const GlobalSearch = ({ isOpen, onClose, stores, activities, outcomes = [], onSe
                     <ClipboardList size={18} />
                   </div>
                   <div style={{ flexGrow: 1 }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{act.notes.substring(0, 60)}{act.notes.length > 60 ? '...' : ''}</div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{(act.notes || '').substring(0, 60)}{(act.notes || '').length > 60 ? '...' : ''}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{new Date(act.created_at).toLocaleDateString()} • {outcomes.find(o => o.id === act.outcome_id)?.name || 'Activity'}</div>
                   </div>
                 </div>

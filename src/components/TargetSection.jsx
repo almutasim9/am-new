@@ -97,7 +97,7 @@ const TargetSection = ({ activities }) => {
     const expectedSoFar = dailyTarget * workDaysPassed;
 
     const weeklyProgress = target.weekly_goal > 0 ? (weekCalls.length / target.weekly_goal) * 100 : 0;
-    const status = todayCalls >= dailyTarget ? 'exceeded' : 'on-track';
+    const status = todayCalls >= Math.ceil(dailyTarget) ? 'exceeded' : 'on-track';
     const difference = todayCalls - dailyTarget;
 
     return {
