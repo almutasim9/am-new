@@ -405,7 +405,34 @@ function App() {
     }
   }, [activities, stores, notifPermission]);
 
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tag = e.target.tagName;
+      const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || e.target.isContentEditable;
 
+      // Ctrl+K / Cmd+K → open global search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+        return;
+      }
+      // Escape → close search
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        return;
+      }
+      if (isTyping) return;
+      // N → open new activity modal (dispatches to ActivityLog listener)
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        setActiveTab('activities');
+        setTimeout(() => window.dispatchEvent(new CustomEvent('open-new-activity')), 50);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const quickLogMerchantHistory = useMemo(
     () => activities.filter(a => a.store_id === quickLogStore?.id).slice(0, 3),

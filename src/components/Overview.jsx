@@ -1,10 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Target, Users, CheckCircle, Clock, ArrowRight, AlertCircle,
-  Calendar, TrendingUp, Zap, PhoneCall, Activity, Star, Store
+  Calendar, TrendingUp, Zap, PhoneCall, Activity, Star, Store,
+  BellOff, Printer, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from 'date-fns';
+import {
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  isWithinInterval, startOfDay, endOfDay, eachDayOfInterval,
+  differenceInDays, format
+} from 'date-fns';
 import { getOverdueActivities } from '../services/notificationService';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -74,6 +79,7 @@ const StatCard = ({ icon: Icon, label, value, color, pct, delay }) => (
 // ── main ──────────────────────────────────────────────────────────────────────
 const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
   const overdueActivities = getOverdueActivities(activities, stores);
+  const [ghostExpanded, setGhostExpanded] = useState(false);
 
   const completionRate = useMemo(() =>
     stats.totalActivities > 0
@@ -139,6 +145,118 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     return { total: monthActivities.length, uniqueStores, resolved, completionPct, avgPerDay, topOutcomeId, byType, workDaysPassed };
   }, [activities]);
 
+  // ── Ghost stores: active stores with no contact in 7+ days ─────────────────
+  const ghostStores = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+
+    return stores
+      .filter(s => !s.deleted_at && s.is_active)
+      .filter(store => {
+        const last = activities
+          .filter(a => a.store_id === store.id)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        if (!last) return true;
+        return new Date(last.created_at) < cutoff;
+      })
+      .map(store => {
+        const last = activities
+          .filter(a => a.store_id === store.id)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        const daysSince = last ? differenceInDays(new Date(), new Date(last.created_at)) : null;
+        return { ...store, daysSince };
+      })
+      .sort((a, b) => {
+        if (a.daysSince === null) return -1;
+        if (b.daysSince === null) return 1;
+        return b.daysSince - a.daysSince;
+      });
+  }, [stores, activities]);
+
+  // ── Weekly PDF Report ───────────────────────────────────────────────────────
+  const handlePrintWeeklyReport = () => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+    const weekEnd   = endOfWeek(now,   { weekStartsOn: 0 });
+
+    const weekActs = activities.filter(a => {
+      try {
+        return isWithinInterval(new Date(a.created_at), {
+          start: startOfDay(weekStart), end: endOfDay(weekEnd)
+        });
+      } catch { return false; }
+    });
+
+    const weekStores   = new Set(weekActs.map(a => a.store_id)).size;
+    const weekResolved = weekActs.filter(a => a.is_resolved).length;
+    const weekPct      = weekActs.length > 0 ? Math.round((weekResolved / weekActs.length) * 100) : 0;
+    const byType = {
+      call:     weekActs.filter(a => !a.contact_type || a.contact_type === 'call').length,
+      visit:    weekActs.filter(a => a.contact_type === 'visit').length,
+      whatsapp: weekActs.filter(a => a.contact_type === 'whatsapp').length,
+      online:   weekActs.filter(a => a.contact_type === 'online').length,
+    };
+
+    const storeCounts = {};
+    weekActs.forEach(a => { storeCounts[a.store_id] = (storeCounts[a.store_id] || 0) + 1; });
+    const topStores = Object.entries(storeCounts)
+      .sort((a, b) => b[1] - a[1]).slice(0, 5)
+      .map(([id, count]) => ({ name: stores.find(s => s.id === id)?.name || id, count }));
+
+    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
+    <title>التقرير الأسبوعي</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:40px;direction:rtl;background:#fff}
+      .header{text-align:center;margin-bottom:36px;padding-bottom:20px;border-bottom:2px solid #e2e8f0}
+      .header h1{font-size:22px;color:#4f46e5;margin-bottom:6px}
+      .header p{color:#64748b;font-size:13px}
+      h2{font-size:15px;font-weight:700;margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;color:#1e293b}
+      .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:8px}
+      .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;text-align:center}
+      .box .val{font-size:28px;font-weight:800;color:#4f46e5}
+      .box .lbl{font-size:11px;color:#64748b;margin-top:4px;font-weight:500}
+      .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+      .type-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px}
+      .type-box .emoji{font-size:20px}
+      .type-box .cnt{font-size:18px;font-weight:700}
+      .type-box .nm{font-size:11px;color:#64748b}
+      .store-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px}
+      .store-row .nm{font-weight:600;font-size:13px}
+      .badge{background:#4f46e5;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+      .footer{text-align:center;color:#94a3b8;font-size:11px;margin-top:36px;padding-top:16px;border-top:1px solid #e2e8f0}
+      @media print{body{padding:20px}}
+    </style></head><body>
+    <div class="header">
+      <h1>📊 التقرير الأسبوعي</h1>
+      <p>${format(weekStart,'yyyy/MM/dd')} — ${format(weekEnd,'yyyy/MM/dd')}</p>
+    </div>
+    <h2>ملخص الأسبوع</h2>
+    <div class="grid4">
+      <div class="box"><div class="val">${weekActs.length}</div><div class="lbl">إجمالي الأنشطة</div></div>
+      <div class="box"><div class="val">${weekStores}</div><div class="lbl">متاجر مغطاة</div></div>
+      <div class="box"><div class="val">${weekResolved}</div><div class="lbl">مهام مكتملة</div></div>
+      <div class="box"><div class="val">${weekPct}%</div><div class="lbl">نسبة الإنجاز</div></div>
+    </div>
+    <h2>نوع التواصل</h2>
+    <div class="grid2">
+      <div class="type-box"><div class="emoji">📞</div><div><div class="cnt">${byType.call}</div><div class="nm">مكالمة</div></div></div>
+      <div class="type-box"><div class="emoji">🚗</div><div><div class="cnt">${byType.visit}</div><div class="nm">زيارة</div></div></div>
+      <div class="type-box"><div class="emoji">💬</div><div><div class="cnt">${byType.whatsapp}</div><div class="nm">واتساب</div></div></div>
+      <div class="type-box"><div class="emoji">🌐</div><div><div class="cnt">${byType.online}</div><div class="nm">أونلاين</div></div></div>
+    </div>
+    ${topStores.length > 0 ? `<h2>أكثر المتاجر نشاطاً</h2>${topStores.map(s=>`
+      <div class="store-row"><div class="nm">${s.name}</div><div class="badge">${s.count} نشاط</div></div>`).join('')}` : ''}
+    <div class="footer">Registry — ${new Date().toLocaleString('ar-SA')}</div>
+    </body></html>`;
+
+    const win = window.open('', '_blank', 'width=860,height=700');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   return (
     <div className="section-container">
 
@@ -155,6 +273,18 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
             <Calendar size={14} />
             {formatDate()}
           </p>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+            {[
+              { key: 'N', label: 'نشاط جديد' },
+              { key: 'Ctrl+K', label: 'بحث' },
+              { key: 'Esc', label: 'إغلاق' },
+            ].map(sc => (
+              <span key={sc.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                <kbd style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '1px 5px', fontFamily: 'monospace', fontSize: '0.65rem' }}>{sc.key}</kbd>
+                {sc.label}
+              </span>
+            ))}
+          </div>
         </div>
         {overdueActivities.length > 0 && (
           <motion.div
@@ -173,6 +303,85 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
           </motion.div>
         )}
       </motion.div>
+
+      {/* ── Ghost Stores Alert ── */}
+      {ghostStores.length > 0 && (
+        <motion.div
+          {...fadeUp(0.08)}
+          style={{
+            background: 'rgba(245,158,11,0.07)',
+            border: '1px solid rgba(245,158,11,0.35)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => setGhostExpanded(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', background: 'transparent', border: 'none', cursor: 'pointer',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <BellOff size={17} color="#f59e0b" />
+              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#b45309' }}>
+                {ghostStores.length} متجر بدون تواصل منذ +7 أيام
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{
+                background: '#f59e0b', color: 'white',
+                fontSize: '0.65rem', fontWeight: 800,
+                padding: '2px 8px', borderRadius: '999px'
+              }}>{ghostStores.length}</span>
+              {ghostExpanded ? <ChevronUp size={16} color="#f59e0b" /> : <ChevronDown size={16} color="#f59e0b" />}
+            </div>
+          </button>
+
+          {ghostExpanded && (
+            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {ghostStores.slice(0, 10).map(store => (
+                <div
+                  key={store.id}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'rgba(255,255,255,0.6)',
+                    borderRadius: '10px', border: '1px solid rgba(245,158,11,0.2)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => onNavigate?.('stores')}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{store.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{store.id}</div>
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700,
+                    color: store.daysSince === null ? '#dc2626' : store.daysSince >= 14 ? '#dc2626' : '#b45309',
+                    background: store.daysSince === null || store.daysSince >= 14 ? 'rgba(220,38,38,0.08)' : 'rgba(245,158,11,0.1)',
+                    padding: '3px 10px', borderRadius: '999px',
+                  }}>
+                    {store.daysSince === null ? 'لم يتم التواصل أبداً' : `${store.daysSince} يوم`}
+                  </span>
+                </div>
+              ))}
+              {ghostStores.length > 10 && (
+                <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#b45309', fontWeight: 600, padding: '4px' }}>
+                  + {ghostStores.length - 10} متجر آخر
+                </div>
+              )}
+              <button
+                className="btn-secondary"
+                style={{ marginTop: '4px', width: '100%', justifyContent: 'center', borderColor: 'rgba(245,158,11,0.4)', color: '#b45309' }}
+                onClick={() => onNavigate?.('stores')}
+              >
+                عرض جميع المتاجر <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* ── Stat Cards ── */}
       <div className="stats-grid">
@@ -453,10 +662,27 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       {/* ── Monthly AM Self-Report ── */}
       {monthlyReport.total > 0 && (
         <motion.div className="glass-card" style={{ padding: '1.75rem', marginTop: '1.5rem' }} {...fadeUp(0.4)}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={18} color="var(--primary-color)" />
-            تقريرك الشهري — {new Date().toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} color="var(--primary-color)" />
+              تقريرك الشهري — {new Date().toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}
+            </h3>
+            <button
+              onClick={handlePrintWeeklyReport}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: '10px', border: '1px solid var(--border-color)',
+                background: 'var(--surface-hover)', color: 'var(--text-secondary)',
+                fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary-color)'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+              title="طباعة / تصدير التقرير الأسبوعي"
+            >
+              <Printer size={14} /> طباعة أسبوعي
+            </button>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
             {[
               { label: 'إجمالي النشاطات', value: monthlyReport.total, color: 'var(--primary-color)' },

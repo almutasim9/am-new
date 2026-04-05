@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ClipboardList, Calendar, CheckCircle, Clock, FileDown, FilePlus, X, Download } from 'lucide-react';
 import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,6 +125,13 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
 
   const totalPages = Math.ceil(filteredLog.length / PAGE_SIZE);
   const pagedLog = filteredLog.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Keyboard shortcut: N → open new activity modal
+  useEffect(() => {
+    const handler = () => setIsModalOpen(true);
+    window.addEventListener('open-new-activity', handler);
+    return () => window.removeEventListener('open-new-activity', handler);
+  }, []);
 
   // Reset to page 1 when filters change
   const handleSearchChange = (val) => { setLogSearchTerm(val); setCurrentPage(1); };
