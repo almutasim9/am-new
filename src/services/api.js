@@ -190,6 +190,29 @@ export const libraryService = {
   }
 };
 
+export const offersService = {
+  async getAll() {
+    const { data, error } = await supabase.from('offers').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  async create(offer) {
+    validate({ title: { value: offer.title, required: true, maxLength: 255 } });
+    const { data, error } = await supabase.from('offers').insert([offer]).select();
+    if (error) throw error;
+    return data[0];
+  },
+  async update(id, updates) {
+    const { data, error } = await supabase.from('offers').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data[0];
+  },
+  async delete(id) {
+    const { error } = await supabase.from('offers').delete().eq('id', id);
+    if (error) throw error;
+  }
+};
+
 export const targetService = {
   async getForMonth(monthYear) {
     const { data, error } = await supabase.from('targets').select('*').eq('month_year', monthYear).maybeSingle();

@@ -10,7 +10,7 @@ import Library from './components/Library';
 import Settings from './components/Settings';
 import RecycleBin from './components/RecycleBin';
 import InstallPrompt from './components/InstallPrompt';
-import { storeService, activityService, settingsService, libraryService } from './services/api';
+import { storeService, activityService, settingsService, libraryService, offersService } from './services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { requestNotificationPermission, showNotification, getOverdueActivities } from './services/notificationService';
 import { supabase } from './supabaseClient';
@@ -20,6 +20,7 @@ import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import GlobalSearch from './components/GlobalSearch';
 import PerformanceDashboard from './components/PerformanceDashboard';
+import Offers from './components/Offers';
 
 import ActivityForm from './components/ActivityForm';
 
@@ -46,6 +47,7 @@ function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [libraryError, setLibraryError] = useState(false);
+  const [offers, setOffers] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('mp_sidebar_collapsed') === 'true');
   const lastNotifiedRef = useRef(new Set());
@@ -93,6 +95,12 @@ function App() {
       } catch (e) {
         setLinks([]);
         setLibraryError(true);
+      }
+      try {
+        const o = await offersService.getAll();
+        setOffers(o || []);
+      } catch (e) {
+        setOffers([]);
       }
     } catch (error) {
       notify('error', 'Failed to synchronize core data');
@@ -203,6 +211,30 @@ function App() {
       notify('success', 'Link removed from library'); 
     }
     catch(e) { notify('error', 'Error removing link'); }
+  }, [notify]);
+
+  const addOffer = useCallback(async (offer) => {
+    try {
+      const newOffer = await offersService.create(offer);
+      setOffers(prev => [newOffer, ...prev]);
+      notify('success', 'تم إضافة العرض');
+    } catch(e) { notify('error', 'فشل إضافة العرض'); }
+  }, [notify]);
+
+  const updateOffer = useCallback(async (id, updates) => {
+    try {
+      const updated = await offersService.update(id, updates);
+      setOffers(prev => prev.map(o => o.id === id ? updated : o));
+      notify('success', 'تم تحديث العرض');
+    } catch(e) { notify('error', 'فشل التحديث'); }
+  }, [notify]);
+
+  const deleteOffer = useCallback(async (id) => {
+    try {
+      await offersService.delete(id);
+      setOffers(prev => prev.filter(o => o.id !== id));
+      notify('success', 'تم حذف العرض');
+    } catch(e) { notify('error', 'فشل الحذف'); }
   }, [notify]);
 
   const addOutcome = useCallback(async (name) => { 
@@ -473,6 +505,7 @@ function App() {
       case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} onAddStore={addStore} />;
       case 'target': return <TargetSection activities={activities} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
+      case 'offers': return <Offers offers={offers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} />;
       case 'recycle': return (
         <RecycleBin 
           deletedStores={stores.filter(s => !!s.deleted_at)}
