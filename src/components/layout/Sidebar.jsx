@@ -73,10 +73,8 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
           min-height: 44px;
         }
         .sidebar.collapsed .sidebar-header {
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          justify-content: flex-start;
+          justify-content: center;
+          padding: 0;
         }
         .sidebar-brand {
           display: flex;
@@ -100,14 +98,13 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
           margin-top: 2px;
           padding-left: 2px;
         }
-        .sidebar-header-icon { display: none; }
-        .sidebar.collapsed .sidebar-header-icon { display: flex; }
+        /* sidebar-header-icon removed — collapse btn is shown alone when collapsed */
 
         /* Collapse button */
         .sidebar-collapse-btn {
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
+          width: 32px;
+          height: 32px;
+          border-radius: 9px;
           border: 1px solid var(--border-color);
           background: var(--surface-hover);
           color: var(--text-dim);
@@ -334,11 +331,6 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
               Registry
             </div>
             <div className="sidebar-brand-sub">v2.7 UNIVERSAL</div>
-          </div>
-
-          {/* Icon only (collapsed) */}
-          <div className="sidebar-header-icon">
-            <CalendarCheck size={22} color="var(--primary-color)" />
           </div>
 
           {/* Desktop collapse button */}
