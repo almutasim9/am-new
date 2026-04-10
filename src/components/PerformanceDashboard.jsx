@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { motion } from 'framer-motion';
 import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star, Search } from 'lucide-react';
 import { storeService } from '../services/api';
@@ -99,6 +98,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
     setIsProcessing(true);
     try {
       const data = await file.arrayBuffer();
+      const XLSX = await import('xlsx');
       const workbook = XLSX.read(data, { type: 'array' });
       
       const updatesMap = {};

@@ -731,6 +731,17 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
           gap: 1.5rem; 
         }
 
+        @media (max-width: 1024px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+          .bottom-row-grid { grid-template-columns: 1fr; gap: 1rem; }
+        }
+
+        @media (max-width: 820px) {
+          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+          .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+        }
+
         @media (max-width: 768px) {
           .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
           .quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }

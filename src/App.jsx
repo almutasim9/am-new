@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { LayoutDashboard, Store, ClipboardList, CheckCircle2, PhoneOutgoing, Bell, Loader2, BarChart3, TrendingUp, CalendarCheck, Settings as SettingsIcon, AlertCircle, BellOff, Moon, Sun, Bookmark, X } from 'lucide-react';
 import './App.css';
-import Overview from './components/Overview';
-import StoreList from './components/StoreList';
-import ActivityLog from './components/ActivityLog';
-import Stats from './components/Stats';
-import TargetSection from './components/TargetSection';
-import Library from './components/Library';
-import Settings from './components/Settings';
-import RecycleBin from './components/RecycleBin';
+const Overview = React.lazy(() => import('./components/Overview'));
+const StoreList = React.lazy(() => import('./components/StoreList'));
+const ActivityLog = React.lazy(() => import('./components/ActivityLog'));
+const Stats = React.lazy(() => import('./components/Stats'));
+const TargetSection = React.lazy(() => import('./components/TargetSection'));
+const Library = React.lazy(() => import('./components/Library'));
+const Settings = React.lazy(() => import('./components/Settings'));
+const RecycleBin = React.lazy(() => import('./components/RecycleBin'));
 import InstallPrompt from './components/InstallPrompt';
 import { storeService, activityService, settingsService, libraryService, offersService } from './services/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,8 +19,8 @@ import { supabase } from './supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import GlobalSearch from './components/GlobalSearch';
-import PerformanceDashboard from './components/PerformanceDashboard';
-import Offers from './components/Offers';
+const PerformanceDashboard = React.lazy(() => import('./components/PerformanceDashboard'));
+const Offers = React.lazy(() => import('./components/Offers'));
 
 import ActivityForm from './components/ActivityForm';
 
@@ -575,7 +575,13 @@ function App() {
         />
 
         <div className="tab-content">
-          {renderContent()}
+          <React.Suspense fallback={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+              <Loader2 size={48} className="animate-spin" color="var(--primary-color)" />
+            </div>
+          }>
+            {renderContent()}
+          </React.Suspense>
         </div>
         
         {/* Toast System */}

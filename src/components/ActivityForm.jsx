@@ -67,6 +67,7 @@ const ActivityForm = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isOutcomeDropdownOpen, setIsOutcomeDropdownOpen] = useState(false);
+  const [showOptionals, setShowOptionals] = useState(false);
 
   const selectedStore = useMemo(() => 
     (stores || []).find(s => s?.id === formData.store_id), 
@@ -179,6 +180,47 @@ const ActivityForm = ({
           </div>
 
           <form onSubmit={handleFormSubmit} className="form-content-scrollable">
+            
+            <div className="compact-row">
+              {/* Interaction Date - Compact */}
+              <div className="form-section compact-col-date">
+                <label className="section-label">
+                  <span><Calendar size={14} /> Date / التاريخ</span>
+                </label>
+                <input 
+                  type="date" 
+                  className="premium-date-input compact-input"
+                  value={formData.interaction_date}
+                  onChange={e => setFormData({...formData, interaction_date: e.target.value})}
+                />
+              </div>
+
+              {/* Contact Type - More Compact */}
+              <div className="form-section compact-col-contact">
+                <label className="section-label">
+                  <span><Send size={14} /> Contact / التواصل</span>
+                </label>
+                <div className="compact-contact-types">
+                  {[
+                    { value: 'call',    label: '📞 مكالمة', labelEn: 'Call' },
+                    { value: 'visit',   label: '🚗 زيارة',  labelEn: 'Visit'  },
+                    { value: 'whatsapp',label: '💬 واتساب', labelEn: 'WA'   },
+                    { value: 'online',  label: '🌐 أونلاين',labelEn: 'Online'     },
+                  ].map(ct => (
+                    <button
+                      key={ct.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, contact_type: ct.value }))}
+                      className={`compact-chip ${formData.contact_type === ct.value ? 'active' : ''}`}
+                      title={ct.label}
+                    >
+                      {ct.label.split(' ')[0]} {/* Icon only mostly */}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Store Identification (Shows if pre-selected) */}
             {initialStoreId && selectedStore && (
               <div className="selected-store-banner">
@@ -202,7 +244,7 @@ const ActivityForm = ({
                     <input 
                       type="text" 
                       placeholder="Search or select a restaurant..." 
-                      className="premium-search-input"
+                      className="premium-search-input compact-input"
                       value={searchTerm || (selectedStore?.name || '')}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -270,41 +312,10 @@ const ActivityForm = ({
               </div>
             )}
 
-            {/* Contact Type */}
+            {/* Outcome Selection (Reason) */}
             <div className="form-section">
               <label className="section-label">
-                <span><Send size={14} /> نوع التواصل / Contact Type</span>
-              </label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { value: 'call',    label: '📞 مكالمة', labelEn: 'Phone Call' },
-                  { value: 'visit',   label: '🚗 زيارة',  labelEn: 'Field Visit' },
-                  { value: 'whatsapp',label: '💬 واتساب', labelEn: 'WhatsApp'   },
-                  { value: 'online',  label: '🌐 أونلاين',labelEn: 'Online'     },
-                ].map(ct => (
-                  <button
-                    key={ct.value}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, contact_type: ct.value }))}
-                    style={{
-                      padding: '8px 16px', borderRadius: '10px', border: '2px solid',
-                      borderColor: formData.contact_type === ct.value ? 'var(--primary-color)' : 'var(--border-color)',
-                      background: formData.contact_type === ct.value ? 'var(--primary-light)' : 'transparent',
-                      color: formData.contact_type === ct.value ? 'var(--primary-color)' : 'var(--text-secondary)',
-                      fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.15s',
-                      minHeight: '44px'
-                    }}
-                  >
-                    {ct.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Outcome Selection - Modern Hybrid */}
-            <div className="form-section">
-              <label className="section-label">
-                <span><AlertCircle size={14} /> Interaction Outcome / نتيجة التواصل</span>
+                <span><AlertCircle size={14} /> Interaction Reason / سبب التواصل</span>
               </label>
               
               <div className="modern-outcome-container">
@@ -344,7 +355,7 @@ const ActivityForm = ({
                           <span className="selected-label">{selectedOutcome.name}</span>
                         </>
                       ) : (
-                        <span className="placeholder">Pick another result... اختر نتيجة أخرى</span>
+                        <span className="placeholder">Pick another reason... اختر سبباً آخر</span>
                       )}
                     </div>
                     <ChevronRight size={18} className="select-arrow" />
@@ -358,7 +369,7 @@ const ActivityForm = ({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                       >
-                        <div className="popover-results-header">More Outcomes / خيارات إضافية</div>
+                        <div className="popover-results-header">More Reasons / أسباب إضافية</div>
                         <div className="popover-results-list">
                           {otherOutcomes.map(o => {
                             const Icon = OUTCOME_ICONS[o.name] || Tag;
@@ -389,84 +400,94 @@ const ActivityForm = ({
               </div>
             </div>
 
-            {/* Notes & Quick Templates */}
-            <div className="form-section">
-              <label className="section-label">
-                <span><Clock size={14} /> Interaction Details (Optional) / تفاصيل التواصل (اختياري)</span>
-              </label>
-              <div className="quick-templates-grid">
-                {QUICK_TEMPLATES.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className="template-btn"
-                    onClick={() => handleTemplateClick(t)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <textarea 
-                rows="4" 
-                placeholder="What happened? Any specific details or feedback... (Optional) / ماذا حدث؟ أي تفاصيل أو ملاحظات... (اختياري)"
-                className="premium-textarea"
-                value={formData.notes}
-                onChange={e => setFormData({...formData, notes: e.target.value})}
-              />
+            {/* Optional Details Toggle */}
+            <div className="optional-toggle-section">
+              <button 
+                type="button" 
+                className="btn-toggle-optionals"
+                onClick={() => setShowOptionals(!showOptionals)}
+              >
+                {showOptionals ? <ChevronRight size={16} className="rot-90" /> : <ChevronRight size={16} />}
+                Add Interaction Details & Next Steps (Optional) / تفاصيل ومتابعة (اختياري)
+              </button>
             </div>
 
-            {/* Merchant History - Contextual Backdrop */}
-            {formData.store_id && merchantHistory.length > 0 && (
-              <div className="contextual-history-card">
-                <div className="history-header">
-                  <Clock size={12} /> RECENT LOGS FOR {selectedStore?.name?.toUpperCase()}
-                </div>
-                <div className="history-items">
-                  {merchantHistory.map(h => (
-                    <div key={h.id} className="history-item-mini">
-                      <span className="h-date">{format(new Date(h.created_at), 'MMM d')}:</span>
-                      <span className="h-notes">{h.notes || '—'}</span>
+            <AnimatePresence>
+              {showOptionals && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="optional-details-container"
+                >
+                  {/* Notes & Quick Templates (Result) */}
+                  <div className="form-section">
+                    <label className="section-label">
+                      <span><Clock size={14} /> Interaction Result / نتيجة التواصل</span>
+                    </label>
+                    <div className="quick-templates-grid">
+                      {QUICK_TEMPLATES.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className="template-btn"
+                          onClick={() => handleTemplateClick(t)}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    <textarea 
+                      rows="2" 
+                      placeholder="What happened? / ماذا حدث؟..."
+                      className="premium-textarea compact-input"
+                      value={formData.notes}
+                      onChange={e => setFormData({...formData, notes: e.target.value})}
+                    />
+                  </div>
 
-            {/* Interaction Date - Always Defaults to Today */}
-            <div className="form-section">
-              <label className="section-label">
-                <span><Clock size={14} /> Interaction Date / تاريخ التواصل</span>
-              </label>
-              <input 
-                type="date" 
-                className="premium-date-input"
-                value={formData.interaction_date}
-                onChange={e => setFormData({...formData, interaction_date: e.target.value})}
-              />
-            </div>
+                  {/* Contextual History backdrop if applicable */}
+                  {formData.store_id && merchantHistory.length > 0 && (
+                    <div className="contextual-history-card">
+                      <div className="history-header">
+                        <Clock size={12} /> RECENT LOGS FOR {selectedStore?.name?.toUpperCase()}
+                      </div>
+                      <div className="history-items">
+                        {merchantHistory.map(h => (
+                          <div key={h.id} className="history-item-mini">
+                            <span className="h-date">{format(new Date(h.created_at), 'MMM d')}:</span>
+                            <span className="h-notes">{h.notes || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-            {/* Follow-up Section */}
-            <div className="form-section">
-              <label className="section-label"><Calendar size={14} /> Next Steps (Optional) / الخطوات التالية (اختياري)</label>
-              <div className="follow-up-group">
-                <input 
-                  type="date" 
-                  className="premium-date-input"
-                  value={formData.follow_up_date}
-                  onChange={e => setFormData({...formData, follow_up_date: e.target.value})}
-                />
-                <div className="resolve-toggle-group">
-                  <label>Mark as Resolved?</label>
-                  <button
-                    type="button"
-                    className={`toggle-pill ${formData.is_resolved ? 'on' : 'off'}`}
-                    onClick={() => setFormData({...formData, is_resolved: !formData.is_resolved})}
-                  >
-                    <div className="knob"></div>
-                  </button>
-                </div>
-              </div>
-            </div>
+                  {/* Follow-up Section (Advanced) */}
+                  <div className="form-section advanced-options">
+                    <label className="section-label"><Zap size={14} /> Next Steps / الخطوات التالية</label>
+                    <div className="follow-up-group">
+                      <input 
+                        type="date" 
+                        className="premium-date-input compact-input"
+                        value={formData.follow_up_date}
+                        onChange={e => setFormData({...formData, follow_up_date: e.target.value})}
+                      />
+                      <div className="resolve-toggle-group">
+                        <label>Resolved?</label>
+                        <button
+                          type="button"
+                          className={`toggle-pill ${formData.is_resolved ? 'on' : 'off'}`}
+                          onClick={() => setFormData({...formData, is_resolved: !formData.is_resolved})}
+                        >
+                          <div className="knob"></div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Actions Footer */}
             <div className="form-actions-fixed">
@@ -506,7 +527,7 @@ const ActivityForm = ({
           }
 
           .form-header-premium {
-            padding: 1.25rem 1.75rem;
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -517,16 +538,16 @@ const ActivityForm = ({
 
           .header-info { display: flex; gap: 14px; align-items: center; }
           .icon-badge {
-            width: 40px; height: 40px; border-radius: 10px;
+            width: 36px; height: 36px; border-radius: 10px;
             background: var(--primary-color);
             color: white;
             display: flex; align-items: center; justify-content: center;
           }
-          .header-info h3 { font-size: 1.1rem; font-weight: 800; margin: 0; color: #1e293b; }
-          .header-info p { font-size: 0.7rem; color: #64748b; margin: 0; }
+          .header-info h3 { font-size: 1rem; font-weight: 800; margin: 0; color: #1e293b; }
+          .header-info p { font-size: 0.65rem; color: #64748b; margin: 0; }
 
           .close-btn-circle {
-            width: 44px; height: 44px; border-radius: 10px;
+            width: 36px; height: 36px; border-radius: 10px;
             border: none; background: #f8fafc; color: #94a3b8;
             display: flex; align-items: center; justify-content: center;
             transition: all 0.2s; cursor: pointer; flex-shrink: 0;
@@ -534,30 +555,48 @@ const ActivityForm = ({
           .close-btn-circle:hover { background: #fee2e2; color: #ef4444; }
 
           .form-content-scrollable {
-            padding: 1.75rem;
+            padding: 1.25rem 1.5rem;
             overflow-y: auto;
             flex: 1;
-            padding-bottom: 100px;
+            padding-bottom: 80px;
             scrollbar-width: thin;
           }
 
-          .form-section { margin-bottom: 1.75rem; }
+          .form-section { margin-bottom: 1.25rem; }
           .section-label { 
             display: flex; align-items: center; gap: 8px;
-            font-size: 0.7rem; font-weight: 800; color: #94a3b8;
+            font-size: 0.65rem; font-weight: 800; color: #94a3b8;
             text-transform: uppercase; letter-spacing: 0.05em;
-            margin-bottom: 0.85rem;
+            margin-bottom: 0.6rem;
+          }
+
+          .compact-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 1.25rem;
+          }
+          .compact-col-date {
+            flex: 1;
+            margin-bottom: 0;
+          }
+          .compact-col-contact {
+            flex: 1.5;
+            margin-bottom: 0;
           }
 
           .premium-select, .premium-textarea, .premium-date-input {
             width: 100%;
-            padding: 0.85rem 1rem;
+            padding: 0.75rem 1rem;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             background: #ffffff;
             color: #1e293b;
             transition: all 0.2s;
+          }
+
+          .compact-input {
+            padding: 0.6rem 0.8rem;
           }
 
           .premium-select:focus, .premium-textarea:focus, .premium-date-input:focus, .premium-search-input:focus {
@@ -608,6 +647,71 @@ const ActivityForm = ({
             justify-content: center;
             cursor: pointer;
             z-index: 5;
+          }
+
+          .compact-section { margin-bottom: 1.25rem; }
+          .compact-contact-types {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+          .compact-chip {
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            background: transparent;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .compact-chip.active {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+            color: var(--primary-color);
+            box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.1);
+          }
+
+          .optional-toggle-section {
+            display: flex;
+            justify-content: center;
+            margin: 0.5rem 0 1rem;
+          }
+
+          .btn-toggle-optionals {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(241, 245, 249, 0.6);
+            border: 1px dashed #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+          }
+
+          .btn-toggle-optionals:hover {
+            background: #f1f5f9;
+            color: var(--primary-color);
+            border-color: #94a3b8;
+          }
+
+          .rot-90 {
+            transform: rotate(90deg);
+          }
+
+          .optional-details-container {
+            overflow: hidden;
           }
 
           .store-results-dropdown {
@@ -704,17 +808,17 @@ const ActivityForm = ({
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 18px;
+            padding: 8px 14px;
             background: white;
             border: 1.5px solid #eef2f6;
-            border-radius: 14px;
+            border-radius: 12px;
             color: #475569;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            min-height: 48px;
+            min-height: 42px;
           }
 
           .quick-pick-chip:hover {
@@ -749,16 +853,17 @@ const ActivityForm = ({
 
           .premium-select-btn {
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px 14px;
             background: #f8fafc;
             border: 1.5px solid #cbd5e1;
-            border-radius: 14px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
             transition: all 0.2s;
             user-select: none;
+            min-height: 44px;
           }
 
           .premium-select-btn:hover {
@@ -799,6 +904,12 @@ const ActivityForm = ({
           .premium-select-btn.open .select-arrow {
             transform: rotate(90deg);
             color: var(--primary-color);
+          }
+
+          .advanced-options {
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px dashed #e2e8f0;
           }
 
           .popover-result-item.active {

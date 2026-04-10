@@ -73,11 +73,13 @@ const TopBar = ({
       </div>
 
       <style>{`
+        @media (max-width: 1024px) {
+          .topbar-sync-label { display: none !important; }
+        }
         @media (max-width: 768px) {
           .mobile-only.sidebar-toggle { display: flex !important; min-height: 44px; min-width: 44px; }
           .desktop-only { display: none !important; }
           .search-trigger { max-width: none !important; }
-          .topbar-sync-label { display: none !important; }
         }
         .topbar-bell-btn {
           padding: 10px;

@@ -7,7 +7,6 @@ import {
   LayoutGrid, List
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
 import StoreProfile from './StoreProfile';
 
 const StoreList = ({ 
@@ -77,6 +76,7 @@ const StoreList = ({
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
+        const XLSX = await import('xlsx');
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
@@ -117,7 +117,7 @@ const StoreList = ({
     reader.readAsArrayBuffer(file);
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     const templateData = [
       {
         ID: 'ST-1001', Name: 'Sample Restaurant', Category: 'Restaurant',
@@ -132,6 +132,7 @@ const StoreList = ({
         'Map Link': 'https://maps.google.com/...'
       }
     ];
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "StoresTemplate");
@@ -152,7 +153,7 @@ const StoreList = ({
     setTimeout(() => document.body.removeChild(a), 100);
   };
 
-  const handleExportFieldList = () => {
+  const handleExportFieldList = async () => {
     const activeStores = stores.filter(s => !s.deleted_at && s.is_active !== false);
     const exportData = activeStores.map((s, i) => ({
       '#': i + 1,
@@ -168,6 +169,7 @@ const StoreList = ({
       'Address': s.address || '',
       'Map Link': s.map_link || '',
     }));
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(exportData);
     ws['!cols'] = [
       { wch: 4 }, { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 16 },
@@ -522,6 +524,66 @@ const StoreList = ({
         .action-btn-v3.whatsapp:hover { background: #dcfce7; color: #16a34a; transform: translateY(-2px); }
         .action-btn-v3.log:hover { background: #ede9fe; color: #7c3aed; transform: translateY(-2px); }
         .action-btn-v3:active { transform: scale(0.9); }
+
+        .cards-list {
+          flex-direction: column;
+          gap: 1rem;
+          width: 100%;
+        }
+        
+        .mobile-store-card {
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          cursor: pointer;
+          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mobile-store-card:active {
+          transform: scale(0.98);
+        }
+        .mobile-store-card .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .mobile-store-card .card-id {
+          font-weight: 800;
+          color: var(--text-dim);
+          font-size: 0.85rem;
+        }
+        .mobile-store-card .card-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          margin-bottom: 0.25rem;
+        }
+        .mobile-store-card .card-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .mobile-store-card .category-tag, .mobile-store-card .manager-phone {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+        .mobile-store-card .card-footer {
+          margin-top: 0.5rem;
+          padding-top: 1rem;
+          border-top: 1px dashed var(--border-color);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          color: var(--primary-color);
+        }
+        .mobile-store-card .view-profile-hint {
+          font-size: 0.85rem;
+          font-weight: 700;
+        }
 
         .desktop-only { display: flex; }
         .mobile-only { display: none; }
