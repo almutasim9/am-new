@@ -1,23 +1,24 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import './StoreProfile.css';
 import {
   ArrowLeft, Pencil, Check, X, Phone, User, Database, Globe, MapPin,
   ExternalLink, TrendingUp, ShieldCheck,
   Smartphone, Activity, Trash2, Target, Hash, AlertCircle,
-  Power, ShieldOff, Info, Copy, Bookmark, DollarSign, ShoppingCart
+  Power, ShieldOff, Info, Copy, Bookmark, MessageCircle, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import ActivityForm from './ActivityForm';
 
 
-const StoreProfile = ({ 
-  store, 
-  activities, 
-  outcomes, 
+const StoreProfile = ({
+  store,
+  activities,
+  outcomes,
   closureReasons = [],
-  onClose, 
-  onUpdate, 
+  onClose,
+  onUpdate,
   onDeleteStore,
   onAddActivity,
   onNotify
@@ -38,8 +39,6 @@ const StoreProfile = ({
 
   const st = getStats();
 
-  
-  // State for Dialogs
   const [showClosureDialog, setShowClosureDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedClosureReasonId, setSelectedClosureReasonId] = useState('');
@@ -49,22 +48,28 @@ const StoreProfile = ({
 
   const storeActivities = activities.filter(a => a.store_id === store.id);
   const resolvedCount = storeActivities.filter(a => a.is_resolved).length;
+  const pendingCount = storeActivities.filter(a => !a.is_resolved).length;
   const successRate = storeActivities.length ? Math.round((resolvedCount / storeActivities.length) * 100) : 0;
 
-  // null covers both undefined (missing key) and null (Supabase returns null for missing columns)
   const isSchemaOutdated = store.has_pos == null || store.has_sim == null;
 
+  const toWhatsApp = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    return `https://wa.me/${digits}`;
+  };
+
   const handleSave = () => {
-    const { 
-      id, name, category, owner_name, phone, zone, area, 
-      address, map_link, cashier_phone, accounts_manager_phone, 
-      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id 
+    const {
+      id, name, category, owner_name, phone, zone, area,
+      address, map_link, cashier_phone, accounts_manager_phone,
+      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id
     } = editForm;
-    
-    const sanitizedData = { 
-      name, category, owner_name, phone, zone, area, 
-      address, map_link, cashier_phone, accounts_manager_phone, 
-      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id 
+
+    const sanitizedData = {
+      name, category, owner_name, phone, zone, area,
+      address, map_link, cashier_phone, accounts_manager_phone,
+      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id
     };
 
     onUpdate(id, sanitizedData);
@@ -81,7 +86,7 @@ const StoreProfile = ({
 
   const handleConfirmStoreClosure = async () => {
     if (!selectedClosureReasonId) return;
-    
+
     setIsProcessingClosure(true);
     try {
       const reasonObj = closureReasons.find(r => r.id === selectedClosureReasonId);
@@ -114,13 +119,13 @@ const StoreProfile = ({
   const HardwareControl = ({ label, field, icon: Icon }) => {
     const isActive = isEditing ? !!editForm[field] : !!store[field];
     return (
-      <div 
+      <div
         className={`hardware-card ${isActive ? 'active' : ''} ${isSchemaOutdated ? 'disabled' : ''}`}
         onClick={() => !isSchemaOutdated && handleToggleHardware(field)}
         style={{ cursor: isSchemaOutdated ? 'not-allowed' : 'pointer', opacity: isSchemaOutdated ? 0.6 : 1 }}
       >
         <div className="hw-icon-box">
-          <Icon size={24} />
+          <Icon size={22} />
         </div>
         <div className="hw-info">
           <span className="hw-label">{label}</span>
@@ -136,30 +141,30 @@ const StoreProfile = ({
   const InfoField = ({ label, icon: Icon, value, field, placeholder }) => (
     <div className="info-field-group">
       <div className="field-header">
-        <Icon size={14} /> 
+        <Icon size={13} />
         <span>{label}</span>
       </div>
       {isEditing ? (
-        <input 
-          type="text" 
+        <input
+          type="text"
           className="edit-input-premium"
           value={editForm[field] || ''}
           placeholder={placeholder}
           onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
         />
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="field-value">{value || 'Not provided'}</div>
+        <div className="field-value-row">
+          <div className="field-value">{value || <span className="field-empty">Not provided</span>}</div>
           {value && (label.includes('Phone') || field.includes('phone')) && (
-            <button 
-              className="copy-btn-subtle" 
-              onClick={() => { 
-                navigator.clipboard.writeText(value); 
+            <button
+              className="copy-btn-subtle"
+              onClick={() => {
+                navigator.clipboard.writeText(value);
                 onNotify?.('success', `${label} copied!`);
               }}
               title="Copy"
             >
-              <Copy size={12} />
+              <Copy size={11} />
             </button>
           )}
         </div>
@@ -167,228 +172,281 @@ const StoreProfile = ({
     </div>
   );
 
+  const ContactRow = ({ label, icon: Icon, value, field }) => {
+    const waLink = toWhatsApp(value);
+    return (
+      <div className="contact-card">
+        <div className="contact-icon-wrap">
+          <Icon size={16} />
+        </div>
+        <div className="contact-body">
+          <span className="contact-label">{label}</span>
+          {isEditing ? (
+            <input
+              className="edit-input-minimal"
+              value={editForm[field] || ''}
+              placeholder="Phone number"
+              onChange={e => setEditForm({ ...editForm, [field]: e.target.value })}
+            />
+          ) : (
+            <span className="contact-value">{value || <span className="field-empty">Unset</span>}</span>
+          )}
+        </div>
+        {!isEditing && value && (
+          <div className="contact-actions">
+            <button
+              className="action-icon-btn copy"
+              onClick={() => { navigator.clipboard.writeText(value); onNotify?.('success', `${label} copied`); }}
+              title="Copy"
+            >
+              <Copy size={13} />
+            </button>
+            {waLink && (
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="action-icon-btn whatsapp" title="Open in WhatsApp">
+                <MessageCircle size={13} />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const initials = store.name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+
   return (
     <div className="internal-page-container">
-      {/* Top Header & Actions */}
-      <div className="profile-header-v3">
-        <div className="header-left">
-          <button className="back-circle-btn" onClick={onClose}>
-            <ArrowLeft size={20} />
+      {/* Header */}
+      <div className="sp-header">
+        <div className="sp-header-left">
+          <button className="back-circle-btn" onClick={onClose} title="Back">
+            <ArrowLeft size={18} />
           </button>
-          <div className="header-titles">
-            <h1 className="hero-name" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className={`sp-avatar ${!store.is_active ? 'inactive' : ''}`}>{initials}</div>
+          <div className="sp-title-block">
+            <div className="sp-name">
               {store.name}
-              <button className="copy-btn-subtle" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(store.name); onNotify?.('success', 'Name copied'); }} title="Copy Name">
-                <Copy size={16} />
+              <button className="copy-btn-subtle" onClick={() => { navigator.clipboard.writeText(store.name); onNotify?.('success', 'Copied'); }} title="Copy name">
+                <Copy size={12} />
               </button>
-            </h1>
-            <div className="hero-meta">
-              <span className="tag-id" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ID: {store.id}
-                <button className="copy-btn-subtle" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(store.id); onNotify?.('success', 'ID copied'); }} title="Copy ID">
-                  <Copy size={12} />
-                </button>
+            </div>
+            <div className="sp-meta">
+              <span className="sp-badge id">#{store.id}</span>
+              {store.category && <span className="sp-badge cat">{store.category}</span>}
+              {store.zone && <span className="sp-badge zone">{store.zone}</span>}
+              <span className={`sp-badge status ${store.is_active ? 'active' : 'inactive'}`}>
+                <span className="status-dot"></span>
+                {store.is_active ? 'Active' : 'Inactive'}
               </span>
-              <span className="meta-sep"></span>
-              <span className="tag-cat">{store.category}</span>
-              <span className="meta-sep"></span>
-              <div className={`status-pill ${store.is_active ? 'active' : 'closed'}`}>
-                <div className="dot"></div> {store.is_active ? 'Active Partner' : 'Closed / Inactive'}
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="header-actions">
-          {store.is_active ? (
-            <button className="btn-closure-start" onClick={() => setShowClosureDialog(true)}>
-              <Power size={18} /> Close Store
-            </button>
-          ) : (
-            <button className="btn-activate-store" onClick={() => onUpdate(store.id, { is_active: true })}>
-              <Check size={18} /> Re-activate
-            </button>
+        <div className="sp-header-right">
+          {/* Quick phone action */}
+          {store.phone && (
+            <div className="sp-phone-chip">
+              <Phone size={13} />
+              <span>{store.phone}</span>
+              <div className="chip-divider" />
+              {toWhatsApp(store.phone) && (
+                <a href={toWhatsApp(store.phone)} target="_blank" rel="noopener noreferrer" className="chip-wa" title="WhatsApp">
+                  <MessageCircle size={14} />
+                </a>
+              )}
+              <button className="chip-copy" onClick={() => { navigator.clipboard.writeText(store.phone); onNotify?.('success', 'Phone copied'); }} title="Copy">
+                <Copy size={13} />
+              </button>
+            </div>
           )}
 
-          <button 
-            className={`btn-edit-toggle-premium ${isEditing ? 'active' : ''}`}
-            onClick={isEditing ? handleSave : () => { setIsEditing(true); setEditForm({...store}); }}
-          >
-            {isEditing ? (
-              <><Check size={18} /> Save / حفظ</>
+          <div className="sp-actions">
+            <button className="sp-btn log-activity" onClick={() => setIsActivityFormOpen(true)}>
+              <Plus size={14} /> Log Activity
+            </button>
+            {store.is_active ? (
+              <button className="sp-btn close-store" onClick={() => setShowClosureDialog(true)}>
+                <Power size={14} /> Close
+              </button>
             ) : (
-              <><Pencil size={18} /> Edit / تعديل</>
+              <button className="sp-btn reactivate" onClick={() => onUpdate(store.id, { is_active: true })}>
+                <Check size={14} /> Re-activate
+              </button>
             )}
-          </button>
-
-          <button className="btn-soft-delete-premium" onClick={() => setShowDeleteDialog(true)} title="Move to Recycle Bin">
-            <Trash2 size={18} />
-          </button>
-
-          {isEditing && (
-            <button className="btn-cancel-edit-v2" onClick={() => setIsEditing(false)}>
-              <X size={18} />
+            {isEditing ? (
+              <>
+                <button className="sp-btn save" onClick={handleSave}><Check size={14} /> Save</button>
+                <button className="sp-btn cancel" onClick={() => setIsEditing(false)}><X size={14} /></button>
+              </>
+            ) : (
+              <button className="sp-btn edit" onClick={() => { setIsEditing(true); setEditForm({...store}); }}>
+                <Pencil size={14} /> Edit
+              </button>
+            )}
+            <button className="sp-btn icon-only danger" onClick={() => setShowDeleteDialog(true)} title="Move to Recycle Bin">
+              <Trash2 size={14} />
             </button>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Closure Dialog Overlay */}
-      <AnimatePresence>
-        {showClosureDialog && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="dialog-overlay-premium">
-            <motion.div initial={{ scale: 0.9, y: 30, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 30, opacity: 0 }} className="closure-dialog-premium glass-card">
-              <button className="dialog-close-btn" onClick={() => setShowClosureDialog(false)}><X size={20} /></button>
-              <div className="dialog-header-v2">
-                <div className="icon-badge-danger"><ShieldOff size={32} /></div>
-                <h2>Confirm Closure</h2>
-                <h3>تأكيد إغلاق المتجر</h3>
-                <p>Please select a reason for closing this partner account.</p>
-                <p className="ar-sub">يرجى اختيار سبب إغلاق حساب الشريك</p>
-              </div>
-              <div className="reason-selector-premium">
-                {closureReasons.length > 0 ? (
-                  closureReasons.map(reason => (
-                    <button key={reason.id} className={`premium-reason-btn ${selectedClosureReasonId === reason.id ? 'selected' : ''}`} onClick={() => setSelectedClosureReasonId(reason.id)}>
-                      <div className="reason-dot"></div>
-                      <span className="reason-text">{reason.name}</span>
-                      {selectedClosureReasonId === reason.id && <Check size={16} className="reason-check" />}
-                    </button>
-                  ))
-                ) : (
-                  <div className="empty-reasons-state">
-                    <Info size={24} />
-                    <p>No closure reasons found.</p>
-                    <p className="ar-p">لا توجد أسباب إغلاق مضافة</p>
-                    <span className="hint">Add reasons in Settings &gt; Configuration</span>
-                  </div>
-                )}
-              </div>
-              <div className="dialog-footer-v2">
-                <button className="btn-secondary-v2" onClick={() => setShowClosureDialog(false)}>Cancel / إلغاء</button>
-                <button className="btn-danger-premium" disabled={!selectedClosureReasonId || isProcessingClosure} onClick={handleConfirmStoreClosure}>
-                  {isProcessingClosure ? <div className="loader-small"></div> : <>Confirm Closure / تأكيد الإغلاق</>}
-                </button>
-              </div>
+      {/* Dialogs — portals with AnimatePresence INSIDE the portal */}
+      {createPortal(
+        <AnimatePresence>
+          {showClosureDialog && (
+            <motion.div key="closure-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="dialog-overlay-premium">
+              <motion.div initial={{ scale: 0.93, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.93, y: 20, opacity: 0 }} className="closure-dialog-premium glass-card">
+                <button className="dialog-close-btn" onClick={() => setShowClosureDialog(false)}><X size={18} /></button>
+                <div className="dialog-header-v2">
+                  <div className="icon-badge-danger"><ShieldOff size={26} /></div>
+                  <h2>Confirm Closure</h2>
+                  <h3>تأكيد إغلاق المتجر</h3>
+                  <p>Please select a reason for closing this partner account.</p>
+                </div>
+                <div className="reason-selector-premium">
+                  {closureReasons.length > 0 ? (
+                    closureReasons.map(reason => (
+                      <button key={reason.id} className={`premium-reason-btn ${selectedClosureReasonId === reason.id ? 'selected' : ''}`} onClick={() => setSelectedClosureReasonId(reason.id)}>
+                        <div className="reason-dot"></div>
+                        <span className="reason-text">{reason.name}</span>
+                        {selectedClosureReasonId === reason.id && <Check size={14} className="reason-check" />}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="empty-reasons-state">
+                      <Info size={22} />
+                      <p>No closure reasons found.</p>
+                      <span className="hint">Add reasons in Settings › Configuration</span>
+                    </div>
+                  )}
+                </div>
+                <div className="dialog-footer-v2">
+                  <button className="btn-secondary-v2" onClick={() => setShowClosureDialog(false)}>Cancel / إلغاء</button>
+                  <button className="btn-danger-premium" disabled={!selectedClosureReasonId || isProcessingClosure} onClick={handleConfirmStoreClosure}>
+                    {isProcessingClosure ? <div className="loader-small"></div> : <>Confirm Closure</>}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
-        {showDeleteDialog && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="dialog-overlay-premium">
-            <motion.div initial={{ scale: 0.9, y: 30, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 30, opacity: 0 }} className="closure-dialog-premium glass-card">
-              <button className="dialog-close-btn" onClick={() => setShowDeleteDialog(false)}><X size={20} /></button>
-              <div className="dialog-header-v2">
-                <div className="icon-badge-danger" style={{ background: '#fef2f2', color: '#ef4444' }}><Trash2 size={32} /></div>
-                <h2>Move to Recycle Bin</h2>
-                <h3>نقل إلى سلة المهملات</h3>
-                <p>Are you sure you want to archive this restaurant? It will be hidden from reports.</p>
-                <p className="ar-sub">هل أنت متأكد من أرشفة هذا المتجر؟ سيتم إخفاؤه من التقارير والقائمة الرئيسية.</p>
-              </div>
-              <div className="dialog-footer-v2">
-                <button className="btn-secondary-v2" onClick={() => setShowDeleteDialog(false)}>Cancel / إلغاء</button>
-                <button className="btn-danger-premium" onClick={handleConfirmDelete}>Archive Now / أرشفة الآن</button>
-              </div>
+      {createPortal(
+        <AnimatePresence>
+          {showDeleteDialog && (
+            <motion.div key="delete-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="dialog-overlay-premium">
+              <motion.div initial={{ scale: 0.93, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.93, y: 20, opacity: 0 }} className="closure-dialog-premium glass-card">
+                <button className="dialog-close-btn" onClick={() => setShowDeleteDialog(false)}><X size={18} /></button>
+                <div className="dialog-header-v2">
+                  <div className="icon-badge-danger" style={{ background: '#fef2f2', color: '#ef4444' }}><Trash2 size={26} /></div>
+                  <h2>Move to Recycle Bin</h2>
+                  <h3>نقل إلى سلة المهملات</h3>
+                  <p>Are you sure? This store will be hidden from reports and the main list.</p>
+                </div>
+                <div className="dialog-footer-v2">
+                  <button className="btn-secondary-v2" onClick={() => setShowDeleteDialog(false)}>Cancel / إلغاء</button>
+                  <button className="btn-danger-premium" onClick={handleConfirmDelete}>Archive Now / أرشفة الآن</button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       <div className="profile-grid">
+        {/* ── Left Column ── */}
         <div className="grid-col-left">
+          {/* Metrics */}
           <div className="metrics-row">
-            <div className="metric-card glass-card"><div className="m-icon blue"><Activity size={20} /></div><div className="m-data"><span className="m-val">{storeActivities.length}</span><span className="m-lab">Total Interactions</span></div></div>
-            <div className="metric-card glass-card"><div className="m-icon green"><Target size={20} /></div><div className="m-data"><span className="m-val">{successRate}%</span><span className="m-lab">Resolution Rate</span></div></div>
+            <div className="metric-card glass-card">
+              <div className="m-icon blue"><Activity size={19} /></div>
+              <div className="m-data">
+                <span className="m-val">{storeActivities.length}</span>
+                <span className="m-lab">Total Interactions</span>
+              </div>
+            </div>
+            <div className="metric-card glass-card">
+              <div className="m-icon amber"><AlertCircle size={19} /></div>
+              <div className="m-data">
+                <span className="m-val">{pendingCount}</span>
+                <span className="m-lab">Pending Tasks</span>
+              </div>
+            </div>
+            <div className="metric-card glass-card">
+              <div className="m-icon green"><Target size={19} /></div>
+              <div className="m-data">
+                <span className="m-val">{successRate}%</span>
+                <span className="m-lab">Resolution Rate</span>
+              </div>
+            </div>
           </div>
 
+          {/* Sales & Performance */}
           {(store.gmv !== undefined && store.gmv !== null) && (
             <div className="section-card glass-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 className="section-card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <TrendingUp size={16} /> Sales & Performance Insights
-                </h3>
-                
-                {/* Tabs inside Store Profile */}
-                <div style={{ display: 'flex', background: 'var(--surface-hover)', borderRadius: '8px', padding: '4px', gap: '4px', border: '1px solid var(--border-color)' }}>
+              <div className="section-card-header">
+                <h3 className="section-card-title"><TrendingUp size={14} /> Sales & Performance</h3>
+                <div className="perf-tab-row">
                   {['monthly', 'commercial', 'yesterday'].map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActivePerfTab(tab)}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: activePerfTab === tab ? '#e0e7ff' : 'transparent',
-                        color: activePerfTab === tab ? '#4f46e5' : 'var(--text-dim)',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                    >
+                    <button key={tab} className={`perf-tab-btn ${activePerfTab === tab ? 'active' : ''}`} onClick={() => setActivePerfTab(tab)}>
                       {tab === 'monthly' ? 'شهري' : tab === 'commercial' ? 'تجاري' : 'البارحة'}
                     </button>
                   ))}
                 </div>
               </div>
-              
               {!st ? (
-                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)', fontSize: '0.9rem', background: 'var(--surface-hover)', borderRadius: '12px' }}>
-                   لا توجد بيانات متاحة لهذه الفترة...
-                 </div>
+                <div className="no-data-state">لا توجد بيانات لهذه الفترة</div>
               ) : (
                 <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>إجمالي المبيعات (GMV)</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{Number(st.gmv || 0).toLocaleString()} <span style={{ fontSize: '0.7rem' }}>IQD</span></div>
+                  <div className="sales-grid">
+                    <div className="sales-big-card green-accent">
+                      <span className="sales-big-label">إجمالي المبيعات (GMV)</span>
+                      <span className="sales-big-val green">{Number(st.gmv || 0).toLocaleString()} <small>IQD</small></span>
+                    </div>
+                    <div className="sales-big-card blue-accent">
+                      <span className="sales-big-label">الطلبات (Orders)</span>
+                      <span className="sales-big-val blue">{Number(st.orders || 0).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div style={{ padding: '0.75rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>الطلبات (Orders)</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#4f46e5' }}>{Number(st.orders || 0).toLocaleString()}</div>
+                  <div className="sales-mini-grid">
+                    {[
+                      ['Avg. Cart', `${Number(st.avg_cart||0).toLocaleString()} IQD`],
+                      ['Items Total', Number(st.items_total||0).toLocaleString()],
+                      ['MV %', `${Number(st.mv_percent||0)}%`],
+                      ['MVH %', `${Number(st.mvh_percent||0)}%`],
+                      ['Highlights', `${Number(st.highlights||0).toLocaleString()} IQD`],
+                      ['HL %', `${Number(st.hl_percent||0)}%`],
+                      ['Discount', `${Number(st.discount_amount||0).toLocaleString()} IQD`],
+                      ['Ratings', `${st.ratings || '-'} ★`],
+                      ['Delivery', `${Number(st.delivery||0).toLocaleString()} IQD`],
+                      ['Toters+ %', `${Number(st.toters_plus_percent||0)}%`],
+                    ].map(([label, val]) => (
+                      <div key={label} className="sales-mini-item">
+                        <span className="sales-mini-label">{label}</span>
+                        <span className="sales-mini-val">{val}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="info-fields-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Avg. Cart:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.avg_cart || 0).toLocaleString()} IQD</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Items Total:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.items_total || 0).toLocaleString()}</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MV:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mv || 0).toLocaleString()} IQD</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Total MVH:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.total_mvh || 0).toLocaleString()} IQD</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MV %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mv_percent || 0)}%</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>MVH %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.mvh_percent || 0)}%</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Highlights:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.highlights || 0).toLocaleString()} IQD</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.hl_percent || 0)}%</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>New HL %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.new_hl_percent || 0)}%</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Credits Use:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.store_credits_use || 0).toLocaleString()}</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount Amount:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_amount || 0).toLocaleString()} IQD</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Discount %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.discount_percent || 0)}%</span></div>
-                  
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Delivery:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.delivery || 0).toLocaleString()} IQD</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Ratings:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}>{st.ratings || '-'} ★</span></div>
-
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Orders %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.orders_percent || 0)}%</span></div>
-                  <div className="info-field-group" style={{ padding: '6px' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Toters+ %:</span> <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{Number(st.toters_plus_percent || 0)}%</span></div>
-                </div>
                 </>
               )}
             </div>
           )}
 
+          {/* Technical */}
           <div className="section-card glass-card">
-            <h3 className="section-card-title"><Smartphone size={16} /> Technical Infrastructure</h3>
+            <h3 className="section-card-title"><Smartphone size={14} /> Technical Infrastructure</h3>
             <div className="hardware-controls-grid">
               <HardwareControl label="Point of Sale (POS)" field="has_pos" icon={Database} />
               <HardwareControl label="SIM Integration" field="has_sim" icon={Globe} />
             </div>
           </div>
 
+          {/* Registry */}
           <div className="section-card glass-card">
-            <h3 className="section-card-title"><Hash size={16} /> Registry Information</h3>
+            <h3 className="section-card-title"><Hash size={14} /> Registry Information</h3>
             <div className="info-fields-grid">
               <InfoField label="Primary Contact" icon={User} value={store.owner_name} field="owner_name" placeholder="Contact Name" />
               <InfoField label="Business Phone" icon={Phone} value={store.phone} field="phone" placeholder="Phone Number" />
@@ -396,105 +454,76 @@ const StoreProfile = ({
               <InfoField label="Zone / Region" icon={MapPin} value={store.zone} field="zone" placeholder="Assign Zone" />
               <InfoField label="Area / Neighborhood" icon={TrendingUp} value={store.area} field="area" placeholder="Specific Area" />
             </div>
-            <div style={{ marginTop: '1.5rem' }}>
+            <div className="info-divider" />
+            <div className="info-fields-grid" style={{ gridTemplateColumns: '1fr' }}>
               <InfoField label="Official Address" icon={MapPin} value={store.address} field="address" placeholder="Full Address" />
             </div>
             {(store.map_link || isEditing) && (
-              <div style={{ marginTop: '1rem' }}>
-                <InfoField label="Google Maps Link" icon={ExternalLink} value={store.map_link} field="map_link" placeholder="Map URL" />
+              <div style={{ marginTop: '0.875rem' }}>
+                {isEditing && <InfoField label="Google Maps Link" icon={ExternalLink} value={store.map_link} field="map_link" placeholder="Map URL" />}
                 {store.map_link && !isEditing && (
                   <a href={store.map_link} target="_blank" rel="noopener noreferrer" className="btn-map-hero">
-                    <ExternalLink size={14} /> View Location
+                    <ExternalLink size={13} /> View on Google Maps
                   </a>
                 )}
               </div>
             )}
           </div>
 
+          {/* Contacts */}
           <div className="section-card glass-card">
-            <h3 className="section-card-title"><ShieldCheck size={16} /> Team / سجل التواصل</h3>
+            <h3 className="section-card-title"><ShieldCheck size={14} /> Team Contacts / سجل التواصل</h3>
             <div className="contacts-stack">
-              <div className="sub-contact-row">
-                <div className="s-icon"><Smartphone size={16} /></div>
-                <div className="s-info">
-                  <div className="s-label">Cashier Desk (كاشير)</div>
-                  {isEditing ? (
-                    <input className="edit-input-minimal" value={editForm.cashier_phone || ''} onChange={e => setEditForm({...editForm, cashier_phone: e.target.value})} />
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="s-val">{store.cashier_phone || 'Unset'}</div>
-                      {store.cashier_phone && (
-                        <button className="copy-btn-subtle" onClick={() => { navigator.clipboard.writeText(store.cashier_phone); onNotify?.('success', 'Cashier Phone copied'); }}>
-                          <Copy size={12} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="sub-contact-row">
-                <div className="s-icon"><User size={16} /></div>
-                <div className="s-info">
-                  <div className="s-label">Floor Manager (مدير صالة)</div>
-                  {isEditing ? (
-                    <input className="edit-input-minimal" value={editForm.restaurant_manager_phone || ''} onChange={e => setEditForm({...editForm, restaurant_manager_phone: e.target.value})} />
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="s-val">{store.restaurant_manager_phone || 'Unset'}</div>
-                      {store.restaurant_manager_phone && (
-                        <button className="copy-btn-subtle" onClick={() => { navigator.clipboard.writeText(store.restaurant_manager_phone); onNotify?.('success', 'Manager Phone copied'); }}>
-                          <Copy size={12} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="sub-contact-row">
-                <div className="s-icon"><Database size={16} /></div>
-                <div className="s-info">
-                  <div className="s-label">Accounting (حسابات)</div>
-                  {isEditing ? (
-                    <input className="edit-input-minimal" value={editForm.accounts_manager_phone || ''} onChange={e => setEditForm({...editForm, accounts_manager_phone: e.target.value})} />
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="s-val">{store.accounts_manager_phone || 'Unset'}</div>
-                      {store.accounts_manager_phone && (
-                        <button className="copy-btn-subtle" onClick={() => { navigator.clipboard.writeText(store.accounts_manager_phone); onNotify?.('success', 'Accounting Phone copied'); }}>
-                          <Copy size={12} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ContactRow label="Cashier (كاشير)" icon={Smartphone} value={store.cashier_phone} field="cashier_phone" />
+              <ContactRow label="Floor Manager (مدير صالة)" icon={User} value={store.restaurant_manager_phone} field="restaurant_manager_phone" />
+              <ContactRow label="Accounting (حسابات)" icon={Database} value={store.accounts_manager_phone} field="accounts_manager_phone" />
             </div>
           </div>
         </div>
 
+        {/* ── Right Column (Activity Feed) ── */}
         <div className="grid-col-right">
-          <div className="section-card glass-card" style={{ height: '100%', minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
-            <div className="profile-tab-nav">
-              <button className={`profile-tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>📋 Full Feed</button>
-              <button className={`profile-tab-btn ${activeTab === 'calls' ? 'active' : ''}`} onClick={() => setActiveTab('calls')}>📞 Tasks</button>
+          <div className="section-card glass-card activity-column">
+            <div className="activity-col-header">
+              <div className="profile-tab-nav">
+                <button className={`profile-tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>📋 Full Feed</button>
+                <button className={`profile-tab-btn ${activeTab === 'calls' ? 'active' : ''}`} onClick={() => setActiveTab('calls')}>📞 Tasks</button>
+              </div>
+              <button className="log-activity-col-btn" onClick={() => setIsActivityFormOpen(true)}>
+                <Plus size={14} /> Log
+              </button>
             </div>
+
             <div className="activity-timeline-v3">
               {storeActivities.length === 0 ? (
-                <div className="empty-state-v3"><Activity size={48} opacity={0.1} /><p>No history found.</p></div>
+                <div className="empty-state-v3">
+                  <Activity size={40} opacity={0.15} />
+                  <p>No activity recorded yet</p>
+                  <button className="empty-log-btn" onClick={() => setIsActivityFormOpen(true)}>
+                    <Plus size={14} /> Log First Activity
+                  </button>
+                </div>
               ) : (
                 storeActivities.map((act, idx) => (
                   <div key={act.id} className="timeline-v3-item">
-                     <div className="v3-marker">
-                       <div className={`v3-dot ${act.is_resolved ? 'done' : 'pending'}`}>{act.is_resolved ? <Check size={10} /> : <AlertCircle size={10} />}</div>
-                       {idx !== storeActivities.length - 1 && <div className="v3-line"></div>}
-                     </div>
-                     <div className="v3-content">
-                       <div className="v3-header">
-                         <span className="v3-outcome">{outcomes.find(o => o.id === act.outcome_id)?.name || 'Activity'}</span>
-                         <span className="v3-date">{format(new Date(act.created_at), 'MMM dd, HH:mm')}</span>
-                       </div>
-                       <p className="v3-notes">{act.notes}</p>
-                     </div>
+                    <div className="v3-marker">
+                      <div className={`v3-dot ${act.is_resolved ? 'done' : 'pending'}`}>
+                        {act.is_resolved ? <Check size={9} /> : <AlertCircle size={9} />}
+                      </div>
+                      {idx !== storeActivities.length - 1 && <div className="v3-line"></div>}
+                    </div>
+                    <div className="v3-content">
+                      <div className="v3-header">
+                        <span className="v3-outcome">{outcomes.find(o => o.id === act.outcome_id)?.name || 'Activity'}</span>
+                        <span className="v3-date">{format(new Date(act.created_at), 'MMM dd, HH:mm')}</span>
+                      </div>
+                      {act.notes && <p className="v3-notes">{act.notes}</p>}
+                      {act.follow_up_date && (
+                        <div className="v3-followup-chip">
+                          <Target size={10} /> Follow-up: {format(new Date(act.follow_up_date), 'MMM dd')}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -503,31 +532,14 @@ const StoreProfile = ({
         </div>
       </div>
 
-      <div className="fab-container mobile-only"><button className="fab-main-btn" onClick={() => setIsActivityFormOpen(true)}><Activity size={24} /><span className="fab-label">Refill Log</span></button></div>
-      <ActivityForm isOpen={isActivityFormOpen} onClose={() => setIsActivityFormOpen(false)} onSubmit={onAddActivity} stores={[store]} outcomes={outcomes} initialStoreId={store.id} />
-
-      <style>{`
-        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-closure-start { display: flex; align-items: center; gap: 8px; background: #fee2e2; color: #ef4444; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-edit-toggle-premium { display: flex; align-items: center; gap: 8px; background: #f1f5f9; color: #475569; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-edit-toggle-premium.active { background: var(--primary-color); color: white; }
-        .btn-soft-delete-premium { background: #f1f5f9; color: #64748b; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .btn-soft-delete-premium:hover { background: #fee2e2; color: #ef4444; }
-        .btn-cancel-edit-v2 { background: #f1f5f9; color: #64748b; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        
-        .edit-input-premium { width: 100%; padding: 10px 14px; border: 2px solid var(--primary-light); border-radius: 12px; font-weight: 600; font-size: 0.95rem; margin-top: 4px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.05); }
-        .edit-input-minimal { width: 100%; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 8px; font-size: 0.85rem; font-weight: 600; }
-        
-        .dialog-overlay-premium { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); z-index: 2500; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .closure-dialog-premium { width: 100%; max-width: 440px; background: white; padding: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; position: relative; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .dialog-header-v2 { text-align: center; }
-        .icon-badge-danger { width: 80px; height: 80px; background: #fff1f2; color: #ef4444; border-radius: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
-        .premium-reason-btn { padding: 1rem; background: #f8fafc; border: 2px solid #f1f5f9; border-radius: 16px; font-weight: 700; text-align: left; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; color: #475569; }
-        .premium-reason-btn.selected { background: #fdf2f2; border-color: #ef4444; color: #ef4444; }
-        .btn-danger-premium { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 14px; border-radius: 16px; font-weight: 700; cursor: pointer; }
-        .loader-small { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
+      <ActivityForm
+        isOpen={isActivityFormOpen}
+        onClose={() => setIsActivityFormOpen(false)}
+        onSubmit={onAddActivity}
+        stores={[store]}
+        outcomes={outcomes}
+        initialStoreId={store.id}
+      />
     </div>
   );
 };

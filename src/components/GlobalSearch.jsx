@@ -105,7 +105,7 @@ const GlobalSearch = ({ isOpen, onClose, stores, activities, outcomes = [], onSe
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-dim)' }}>
               <p style={{ fontSize: '0.875rem' }}>Start typing to search across the registry...</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem', fontSize: '0.75rem' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Store size={14} /> Restaurants</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Store size={14} /> Stores</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><ClipboardList size={14} /> Activities</span>
               </div>
             </div>
@@ -119,7 +119,7 @@ const GlobalSearch = ({ isOpen, onClose, stores, activities, outcomes = [], onSe
 
           {results.stores.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-dim)', marginBottom: '0.75rem', paddingLeft: '0.5rem' }}>Restaurants</h4>
+              <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-dim)', marginBottom: '0.75rem', paddingLeft: '0.5rem' }}>Stores</h4>
               {results.stores.map(store => (
                 <div 
                   key={store.id} 

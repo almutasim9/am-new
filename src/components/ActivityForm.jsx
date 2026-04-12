@@ -68,6 +68,10 @@ const ActivityForm = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isOutcomeDropdownOpen, setIsOutcomeDropdownOpen] = useState(false);
   const [showOptionals, setShowOptionals] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [savedCount, setSavedCount] = useState(0);
+  const [justSaved, setJustSaved] = useState(false);
 
   const selectedStore = useMemo(() => 
     (stores || []).find(s => s?.id === formData.store_id), 
@@ -80,15 +84,25 @@ const ActivityForm = ({
     }));
   };
 
+  const availableCategories = useMemo(() => {
+    const cats = (stores || []).filter(Boolean).map(s => s.category).filter(Boolean);
+    return [...new Set(cats)].sort();
+  }, [stores]);
+
   const filteredStores = useMemo(() => {
     if (!stores) return [];
-    const activeStores = (stores || []).filter(s => s && s.is_active);
-    if (!searchTerm) return activeStores;
-    return activeStores.filter(s => 
-      (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.id?.toString() || '').includes(searchTerm)
-    );
-  }, [stores, searchTerm]);
+    return (stores || []).filter(s => {
+      if (!s) return false;
+      if (statusFilter === 'active' && s.is_active === false) return false;
+      if (statusFilter === 'inactive' && s.is_active !== false) return false;
+      if (categoryFilter && s.category !== categoryFilter) return false;
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        if (!(s.name || '').toLowerCase().includes(term) && !(s.id?.toString() || '').includes(term)) return false;
+      }
+      return true;
+    });
+  }, [stores, searchTerm, statusFilter, categoryFilter]);
 
   const otherOutcomes = useMemo(() => {
     return (outcomes || []).filter(o => !QUICK_OUTCOME_NAMES.includes(o.name));
@@ -121,7 +135,7 @@ const ActivityForm = ({
       created_at: interactionDate.toISOString(),
       outcome_id: Number(formData.outcome_id) || formData.outcome_id
     });
-    // Reset form
+    // Reset form but stay open
     setFormData({
       store_id: initialStoreId,
       interaction_date: new Date().toISOString().split('T')[0],
@@ -131,7 +145,11 @@ const ActivityForm = ({
       is_resolved: false,
       contact_type: 'call'
     });
-    onClose();
+    setSearchTerm('');
+    setShowOptionals(false);
+    setSavedCount(prev => prev + 1);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2500);
   };
 
   const sheetVariants = {
@@ -174,13 +192,50 @@ const ActivityForm = ({
                 <p>Log a new activity for transparency</p>
               </div>
             </div>
-            <button className="close-btn-circle" onClick={onClose}>
-              <X size={20} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {savedCount > 0 && (
+                <span style={{
+                  fontSize: '0.72rem', fontWeight: 700,
+                  background: '#dcfce7', color: '#16a34a',
+                  padding: '3px 10px', borderRadius: '20px',
+                  border: '1px solid #bbf7d0'
+                }}>
+                  ✓ {savedCount} {savedCount === 1 ? 'نشاط' : 'نشاطات'} مسجلة
+                </span>
+              )}
+              <button className="close-btn-circle" onClick={() => { setSavedCount(0); onClose(); }}>
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
+          <AnimatePresence>
+            {justSaved && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                style={{
+                  margin: '0 1.25rem',
+                  padding: '10px 14px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '10px',
+                  color: '#16a34a',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Check size={16} /> تم تسجيل النشاط — يمكنك إضافة نشاط آخر أو إغلاق النافذة
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <form onSubmit={handleFormSubmit} className="form-content-scrollable">
-            
+
             <div className="compact-row">
               {/* Interaction Date - Compact */}
               <div className="form-section compact-col-date">
@@ -236,8 +291,44 @@ const ActivityForm = ({
             {!initialStoreId && (
               <div className="form-section">
                 <label className="section-label">
-                  <span><Store size={14} /> Target Restaurant / المطعم المستهدف</span>
+                  <span><Store size={14} /> Target Store / المتجر المستهدف</span>
                 </label>
+
+                {/* Filters above search */}
+                <div className="store-dropdown-filters" style={{ marginBottom: '8px' }}>
+                  <div className="store-filter-row">
+                    {['all', 'active', 'inactive'].map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`filter-chip ${statusFilter === s ? 'active' : ''}`}
+                        onClick={() => setStatusFilter(s)}
+                      >
+                        {s === 'all' ? 'الكل' : s === 'active' ? 'نشط' : 'غير نشط'}
+                      </button>
+                    ))}
+                  </div>
+                  {availableCategories.length > 0 && (
+                    <div className="store-filter-row">
+                      <button
+                        type="button"
+                        className={`filter-chip ${categoryFilter === '' ? 'active' : ''}`}
+                        onClick={() => setCategoryFilter('')}
+                      >كل الفئات</button>
+                      {availableCategories.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={`filter-chip ${categoryFilter === cat ? 'active' : ''}`}
+                          onClick={() => setCategoryFilter(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="searchable-store-container">
                   <div className="search-input-wrapper">
                     <Store className="input-icon-left" size={16} />
@@ -252,9 +343,9 @@ const ActivityForm = ({
                       }}
                       onFocus={() => setIsDropdownOpen(true)}
                     />
-                    {isDropdownOpen && (
-                      <button 
-                        type="button" 
+                    {(formData.store_id || searchTerm) && (
+                      <button
+                        type="button"
                         className="clear-search-btn"
                         onClick={() => {
                           setSearchTerm('');
@@ -269,7 +360,7 @@ const ActivityForm = ({
 
                   <AnimatePresence>
                     {isDropdownOpen && (
-                      <motion.div 
+                      <motion.div
                         className="store-results-dropdown"
                         initial={{ opacity: 0, y: -10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -724,15 +815,50 @@ const ActivityForm = ({
             border: 1px solid #e2e8f0;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
-            max-height: 280px;
+            max-height: 340px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
           }
 
+          .store-dropdown-filters {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+          }
+          .store-filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+          }
+          .filter-chip {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+          }
+          .filter-chip.active {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: #fff;
+          }
+          .filter-chip:hover:not(.active) {
+            background: #e0e7ff;
+            border-color: #a5b4fc;
+            color: #4f46e5;
+          }
+
           .store-list-scrollable {
             overflow-y: auto;
-            max-height: 280px;
+            max-height: 220px;
             scrollbar-width: thin;
           }
 

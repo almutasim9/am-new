@@ -65,6 +65,11 @@ export const storeService = {
     );
     await Promise.all(promises);
     return true;
+  },
+  async bulkUpdate(ids, updates) {
+    const { data, error } = await supabase.from('stores').update(updates).in('id', ids).select();
+    if (error) throw error;
+    return data;
   }
 };
 

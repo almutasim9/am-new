@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, RotateCcw, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
 
@@ -15,8 +16,6 @@ const ConfirmationModal = ({
   type = 'danger',
   isLoading = false 
 }) => {
-  if (!isOpen) return null;
-
   const themes = {
     danger: {
       icon: Trash2,
@@ -41,11 +40,18 @@ const ConfirmationModal = ({
   const theme = themes[type] || themes.danger;
   const Icon = theme.icon;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="dialog-overlay-premium" onClick={onClose}>
-          <motion.div 
+        <motion.div
+          key="confirm-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="dialog-overlay-premium"
+          onClick={onClose}
+        >
+          <motion.div
             initial={{ scale: 0.9, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 20, opacity: 0 }}
@@ -70,14 +76,14 @@ const ConfirmationModal = ({
             </div>
 
             <div className="modal-actions-v2">
-              <button 
-                className="btn-modal-base btn-modal-cancel" 
+              <button
+                className="btn-modal-base btn-modal-cancel"
                 onClick={onClose}
               >
                 Cancel / إلغاء
               </button>
-              <button 
-                className="btn-modal-base btn-modal-confirm" 
+              <button
+                className="btn-modal-base btn-modal-confirm"
                 onClick={onConfirm}
                 disabled={isLoading}
                 style={{ background: theme.gradient }}
@@ -93,9 +99,10 @@ const ConfirmationModal = ({
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

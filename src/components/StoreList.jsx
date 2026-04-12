@@ -9,21 +9,22 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreProfile from './StoreProfile';
 
-const StoreList = ({ 
-  stores, 
-  activities, 
-  outcomes, 
-  categories, 
-  zones, 
-  selectedStoreId, 
-  onSelectStore, 
-  onAddStore, 
-  onUpdateStore, 
-  onToggleStatus, 
-  onDeleteStore, 
-  onBulkAdd, 
-  onNotify, 
-  onAddActivity, 
+const StoreList = ({
+  stores,
+  activities,
+  outcomes,
+  categories,
+  zones,
+  selectedStoreId,
+  onSelectStore,
+  onAddStore,
+  onUpdateStore,
+  onToggleStatus,
+  onDeleteStore,
+  onBulkAdd,
+  onBulkUpdate,
+  onNotify,
+  onAddActivity,
   closureReasons,
   onQuickLog
 }) => {
@@ -39,11 +40,16 @@ const StoreList = ({
   const [viewMode, setViewMode] = useState('list');
   const fileInputRef = useRef(null);
   
-  const [newStore, setNewStore] = useState({ 
-    id: '', name: '', category: '', owner_name: '', 
-    phone: '', zone: '', area: '', address: '', map_link: '', 
-    brand_id: '' 
+  const [newStore, setNewStore] = useState({
+    id: '', name: '', category: '', owner_name: '',
+    phone: '', zone: '', area: '', address: '', map_link: '',
+    brand_id: ''
   });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkZone, setBulkZone] = useState('');
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -58,7 +64,7 @@ const StoreList = ({
         s.phone?.includes(debouncedSearch);
       const matchesCategory = !filterCategory || s.category === filterCategory;
       const matchesZone = !filterZone || s.zone === filterZone;
-      const matchesStatus = filterStatus === 'all' ? true : (filterStatus === 'active' ? s.is_active !== false : s.is_active === false);
+      const matchesStatus = filterStatus === 'all' ? true : (filterStatus === 'active' ? s.is_active === true : !s.is_active);
       return matchesSearch && matchesCategory && matchesZone && matchesStatus;
     }),
   [stores, debouncedSearch, filterCategory, filterZone, filterStatus]);
@@ -66,7 +72,25 @@ const StoreList = ({
   const totalPages = Math.ceil(filteredStores.length / PAGE_SIZE);
   const pagedStores = filteredStores.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const toggleSelectAll = () => setSelectedIds(selectedIds.length === pagedStores.length ? [] : pagedStores.map(s => s.id));
+
+  const handleBulkUpdate = async () => {
+    const updates = {};
+    if (bulkCategory) updates.category = bulkCategory;
+    if (bulkZone) updates.zone = bulkZone;
+    if (!Object.keys(updates).length) return;
+    setIsBulkSaving(true);
+    await onBulkUpdate(selectedIds, updates);
+    setIsBulkSaving(false);
+    setIsBulkModalOpen(false);
+    setBulkCategory('');
+    setBulkZone('');
+    setSelectedIds([]);
+  };
+
   const handleSearchChange = (val) => { setSearchTerm(val); setCurrentPage(1); };
+  const handleFilterChange = (setter) => (val) => { setter(val); setCurrentPage(1); };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -120,7 +144,7 @@ const StoreList = ({
   const handleDownloadTemplate = async () => {
     const templateData = [
       {
-        ID: 'ST-1001', Name: 'Sample Restaurant', Category: 'Restaurant',
+        ID: 'ST-1001', Name: 'Sample Store', Category: 'Retail',
         Brand_ID: 'BRAND-A', Owner: 'John Smith', Phone: '+9647500000000', 
         Zone: 'Mosul', Area: 'Al-Zuhour', Address: 'Main Street - Near University', 
         'Map Link': 'https://maps.google.com/...'
@@ -146,7 +170,7 @@ const StoreList = ({
     a.style.left = '-100px';
     a.style.visibility = 'hidden';
     a.href = uri;
-    a.download = 'Restaurant_Upload_Template.xlsx';
+    a.download = 'Store_Upload_Template.xlsx';
     a.target = '_blank'; // Fallback for some browsers
     document.body.appendChild(a);
     a.click();
@@ -206,7 +230,7 @@ const StoreList = ({
           >
             <div className="directory-header">
               <div className="title-group">
-                <h2 className="gradient-text">Restaurant Registry</h2>
+                <h2 className="gradient-text">Store Registry</h2>
                 <p className="stat-label">Manage active accounts and operational snapshots</p>
               </div>
               
@@ -241,7 +265,7 @@ const StoreList = ({
               <div className="filter-group-v2">
                 <div className="filter-pill-v2">
                   <Activity size={14} />
-                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                  <select value={filterStatus} onChange={(e) => handleFilterChange(setFilterStatus)(e.target.value)}>
                     <option value="all">All Status</option>
                     <option value="active">Active Only</option>
                     <option value="inactive">Inactive Only</option>
@@ -249,14 +273,14 @@ const StoreList = ({
                 </div>
                 <div className="filter-pill-v2">
                   <Globe size={14} />
-                  <select value={filterZone} onChange={(e) => setFilterZone(e.target.value)}>
+                  <select value={filterZone} onChange={(e) => handleFilterChange(setFilterZone)(e.target.value)}>
                     <option value="">All Zones</option>
                     {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
                   </select>
                 </div>
                 <div className="filter-pill-v2">
                   <Layers size={14} />
-                  <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                  <select value={filterCategory} onChange={(e) => handleFilterChange(setFilterCategory)(e.target.value)}>
                     <option value="">All Categories</option>
                     {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
@@ -268,12 +292,46 @@ const StoreList = ({
             </div>
 
             <div className="content-area">
+              {/* Bulk Toolbar */}
+              <AnimatePresence>
+                {selectedIds.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '10px 16px', marginBottom: '12px',
+                      background: 'rgba(79,70,229,0.08)',
+                      border: '1px solid rgba(79,70,229,0.2)',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-color)', flex: 1 }}>
+                      {selectedIds.length} store{selectedIds.length > 1 ? 's' : ''} selected
+                    </span>
+                    <button className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.8rem' }} onClick={() => setIsBulkModalOpen(true)}>
+                      Edit Category / Zone
+                    </button>
+                    <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => setSelectedIds([])}>
+                      Cancel
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {filteredStores.length > 0 ? (
                 <>
                   <div className="desktop-only glass-card-table" style={{ overflowX: 'auto' }}>
                     <table className="premium-table">
                       <thead>
                         <tr>
+                          <th style={{ width: '40px' }}>
+                            <input type="checkbox"
+                              checked={pagedStores.length > 0 && selectedIds.length === pagedStores.length}
+                              onChange={toggleSelectAll}
+                            />
+                          </th>
                           <th style={{ width: '120px' }}>Store ID</th>
                           <th>Store Name</th>
                           <th>Category</th>
@@ -283,7 +341,14 @@ const StoreList = ({
                       </thead>
                       <tbody>
                         {pagedStores.map((store) => (
-                          <tr key={store.id} className="premium-row">
+                          <tr key={store.id} className={`premium-row ${selectedIds.includes(store.id) ? 'row-selected' : ''}`}>
+                            <td>
+                              <input type="checkbox"
+                                checked={selectedIds.includes(store.id)}
+                                onChange={() => toggleSelect(store.id)}
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </td>
                             <td className="id-cell">
                               <div className="id-content">
                                 <div className={`status-dot-v3 ${store.is_active ? 'active' : 'inactive'}`} title={store.is_active ? 'Active' : 'Closed'}></div>
@@ -411,11 +476,12 @@ const StoreList = ({
             </div>
           </motion.div>
         ) : (
-          <motion.div 
-            key="profile" 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             style={{ width: '100%' }}
           >
             <StoreProfile 
@@ -449,7 +515,7 @@ const StoreList = ({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Add New Restaurant</h3>
+              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Add New Store</h3>
               <button 
                 type="button" 
                 onClick={() => setIsModalOpen(false)}
@@ -488,7 +554,7 @@ const StoreList = ({
               </div>
               <div className="form-group"><label>Physical Address</label><textarea rows="1" placeholder="Address" value={newStore.address} onChange={e => setNewStore({...newStore, address: e.target.value})} /></div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
-                <button type="submit" className="btn-primary" style={{ flexGrow: 1, height: '52px', fontSize: '1rem', fontWeight: 600 }}>Register Restaurant</button>
+                <button type="submit" className="btn-primary" style={{ flexGrow: 1, height: '52px', fontSize: '1rem', fontWeight: 600 }}>Register Store</button>
                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)} style={{ height: '52px' }}>Cancel</button>
               </div>
             </form>
@@ -619,7 +685,80 @@ const StoreList = ({
           color: white;
           transform: rotate(90deg);
         }
+        .row-selected { background: rgba(79,70,229,0.06) !important; }
+        .bulk-bar {
+          position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+          z-index: 1000; background: var(--primary-color); color: white;
+          padding: 0.75rem 1.5rem; border-radius: 100px;
+          display: flex; align-items: center; gap: 1.25rem;
+          box-shadow: 0 8px 30px rgba(79,70,229,0.4);
+          white-space: nowrap;
+        }
+        .bulk-bar-count { font-weight: 800; font-size: 0.9rem; }
+        .bulk-bar-btn {
+          padding: 8px 18px; border-radius: 50px; font-weight: 700; font-size: 0.82rem;
+          cursor: pointer; transition: all 0.15s;
+        }
+        .bulk-bar-btn.primary { background: white; color: var(--primary-color); border: none; }
+        .bulk-bar-btn.ghost { background: rgba(255,255,255,0.15); color: white; border: none; }
+        .bulk-bar-btn:hover { opacity: 0.88; }
+        .bulk-modal {
+          width: 90%; max-width: 420px; padding: 1.75rem; border-radius: 20px;
+          background: var(--surface-color); border: 1px solid var(--border-color);
+        }
+        .bulk-modal h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 800; }
+        .bulk-modal p  { margin: 0 0 1.25rem; font-size: 0.78rem; color: var(--text-dim); }
+        .bulk-modal label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+        .bulk-modal select {
+          width: 100%; padding: 0.65rem 0.875rem; border-radius: 10px;
+          border: 1px solid var(--border-color); background: var(--surface-hover);
+          color: var(--text-primary); font-size: 0.875rem; margin-bottom: 1rem;
+        }
+        .bulk-modal select:focus { outline: none; border-color: var(--primary-color); }
+        .bulk-modal-actions { display: flex; gap: 10px; margin-top: 0.5rem; }
+        @media (max-width: 768px) {
+          .bulk-bar { left: 1rem; right: 1rem; transform: none; border-radius: 16px; flex-wrap: wrap; justify-content: space-between; }
+        }
       `}</style>
+
+
+      {/* Bulk Edit Modal */}
+      {isBulkModalOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setIsBulkModalOpen(false)}>
+          <motion.div
+            className="bulk-modal"
+            onClick={e => e.stopPropagation()}
+            initial={{ scale: 0.93, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.93, opacity: 0 }}
+          >
+            <h3>Bulk Edit — {selectedIds.length} Stores</h3>
+            <p>اختر فئة أو زون أو الاثنين معاً — البيانات الفارغة ما تتغير</p>
+            <label>Category / الفئة</label>
+            <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
+              <option value="">— لا تغيير —</option>
+              {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+            <label>Zone / الزون</label>
+            <select value={bulkZone} onChange={e => setBulkZone(e.target.value)}>
+              <option value="">— لا تغيير —</option>
+              {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
+            </select>
+            <div className="bulk-modal-actions">
+              <button
+                className="btn-primary"
+                style={{ flex: 2, justifyContent: 'center' }}
+                disabled={(!bulkCategory && !bulkZone) || isBulkSaving}
+                onClick={handleBulkUpdate}
+              >
+                {isBulkSaving ? 'Saving...' : `Apply to ${selectedIds.length} stores`}
+              </button>
+              <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setIsBulkModalOpen(false)}>Cancel</button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

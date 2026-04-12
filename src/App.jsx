@@ -131,14 +131,22 @@ function App() {
     catch(e) { notify('error', `Update failed: ${e.message || 'Unknown error'}`); }
   }, [notify]);
 
-  const bulkAddStores = useCallback(async (list) => { 
-    try { 
-      await storeService.bulkCreate(list); 
+  const bulkAddStores = useCallback(async (list) => {
+    try {
+      await storeService.bulkCreate(list);
       fetchInitialData();
-      notify('success', `Imported ${list.length} stores`); 
-    } 
+      notify('success', `Imported ${list.length} stores`);
+    }
     catch(e) { notify('error', 'Import failed'); }
   }, [notify, fetchInitialData]);
+
+  const bulkUpdateStores = useCallback(async (ids, updates) => {
+    try {
+      const updated = await storeService.bulkUpdate(ids, updates);
+      setStores(prev => prev.map(s => ids.includes(s.id) ? { ...s, ...updates } : s));
+      notify('success', `Updated ${ids.length} stores`);
+    } catch(e) { notify('error', 'Bulk update failed'); }
+  }, [notify]);
 
   const deleteStore = useCallback(async (id) => {
     try { 
@@ -352,7 +360,7 @@ function App() {
 
   const handleRealtime = useCallback((payload, setter) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
-    if (eventType === 'INSERT') setter(prev => [newRecord, ...prev]);
+    if (eventType === 'INSERT') setter(prev => prev.some(item => item.id === newRecord.id) ? prev : [newRecord, ...prev]);
     if (eventType === 'UPDATE') setter(prev => prev.map(item => item.id === newRecord.id ? newRecord : item));
     if (eventType === 'DELETE') setter(prev => prev.filter(item => item.id !== oldRecord.id));
   }, []);
@@ -495,6 +503,7 @@ function App() {
           onToggleStatus={toggleStoreStatus}
           onDeleteStore={softDeleteStore}
           onBulkAdd={bulkAddStores}
+          onBulkUpdate={bulkUpdateStores}
           onNotify={notify}
           onAddActivity={addActivity}
           closureReasons={closureReasons}

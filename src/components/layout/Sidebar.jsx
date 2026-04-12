@@ -13,7 +13,7 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
 
   const navItems = [
     { id: 'dashboard',   icon: LayoutDashboard, label: 'Dashboard',    onClick: () => { setActiveTab('dashboard'); onSelectStore(null); } },
-    { id: 'stores',      icon: Store,            label: 'Restaurants',  onClick: () => { setActiveTab('stores'); onSelectStore(null); } },
+    { id: 'stores',      icon: Store,            label: 'Stores',  onClick: () => { setActiveTab('stores'); onSelectStore(null); } },
     { id: 'activities',  icon: ClipboardList,    label: 'Daily Log',    badge: stats.pendingTasks > 0 ? stats.pendingTasks : null },
     { id: 'stats',       icon: BarChart3,        label: 'Statistics'   },
     { id: 'performance', icon: TrendingUp,       label: 'Performance'  },

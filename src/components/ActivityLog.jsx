@@ -138,7 +138,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   const handleStatusChange = (val) => { setLogStatusFilter(val); setCurrentPage(1); };
 
   return (
-    <div className="section-container" style={{ position: 'relative' }}>
+    <div className="section-container al-wrap" style={{ position: 'relative' }}>
       <div className="activity-header">
         <div>
           <h2 className="gradient-text">Daily Activity Log</h2>
@@ -589,8 +589,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
         .header-actions { display: flex; gap: 0.75rem; }
         .filters-grid { display: grid; grid-template-columns: 1fr 200px; gap: 1rem; margin-bottom: 1.5rem; }
         
-        .desktop-only { display: flex; }
-        .mobile-only { display: none; }
+        .al-wrap .desktop-only { display: flex !important; }
+        .al-wrap .mobile-only { display: none !important; }
 
         .logs-list { display: flex; flex-direction: column; gap: 1rem; }
         .log-card { padding: 1.25rem; border: 1px solid var(--border-color); position: relative; }
@@ -611,8 +611,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
           .activity-header { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
           .header-actions { width: 100%; justify-content: flex-end; }
           .filters-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-          .desktop-only { display: none !important; }
-          .mobile-only { display: flex !important; }
+          .al-wrap .desktop-only { display: none !important; }
+          .al-wrap .mobile-only { display: flex !important; }
           .bulk-actions-bar { width: 90%; justify-content: space-between; padding: 0.75rem 1rem; bottom: 1rem; }
           .bulk-actions-bar .selected-count { font-size: 0.8rem; }
           .action-buttons { display: flex; gap: 8px; }
