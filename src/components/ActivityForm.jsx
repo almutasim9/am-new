@@ -152,17 +152,7 @@ const ActivityForm = ({
     setTimeout(() => setJustSaved(false), 2500);
   };
 
-  const sheetVariants = {
-    hidden: { y: '100%', opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { type: 'spring', damping: 25, stiffness: 200 }
-    },
-    exit: { y: '100%', opacity: 0 }
-  };
-
-  const modalVariants = {
+const modalVariants = {
     hidden: { scale: 0.9, opacity: 0 },
     visible: { scale: 1, opacity: 1 },
     exit: { scale: 0.9, opacity: 0 }

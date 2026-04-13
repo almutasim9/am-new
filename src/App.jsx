@@ -32,7 +32,6 @@ function App() {
   const [zones, setZones] = useState([]);
   const [categories, setCategories] = useState([]);
   const [closureReasons, setClosureReasons] = useState([]);
-  const [deletedStores, setDeletedStores] = useState([]);
   const [links, setLinks] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -72,14 +71,13 @@ function App() {
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [s, a, o, z, c, cr, ds] = await Promise.all([
+      const [s, a, o, z, c, cr] = await Promise.all([
         storeService.getAll(),
         activityService.getAll(),
         settingsService.getOutcomes(),
         settingsService.getZones(),
         settingsService.getCategories(),
-        settingsService.getClosureReasons(),
-        storeService.getDeleted()
+        settingsService.getClosureReasons()
       ]);
       setStores(s || []);
       setActivities(a || []);
@@ -87,22 +85,21 @@ function App() {
       setZones(z || []);
       setCategories(c || []);
       setClosureReasons(cr || []);
-      setDeletedStores(ds || []);
 
       try {
         const l = await libraryService.getAll();
         setLinks(l || []);
-      } catch (e) {
+      } catch {
         setLinks([]);
         setLibraryError(true);
       }
       try {
         const o = await offersService.getAll();
         setOffers(o || []);
-      } catch (e) {
+      } catch {
         setOffers([]);
       }
-    } catch (error) {
+    } catch {
       notify('error', 'Failed to synchronize core data');
     } finally {
       setLoading(false);
@@ -137,27 +134,18 @@ function App() {
       fetchInitialData();
       notify('success', `Imported ${list.length} stores`);
     }
-    catch(e) { notify('error', 'Import failed'); }
+    catch { notify('error', 'Import failed'); }
   }, [notify, fetchInitialData]);
 
   const bulkUpdateStores = useCallback(async (ids, updates) => {
     try {
-      const updated = await storeService.bulkUpdate(ids, updates);
+      await storeService.bulkUpdate(ids, updates);
       setStores(prev => prev.map(s => ids.includes(s.id) ? { ...s, ...updates } : s));
       notify('success', `Updated ${ids.length} stores`);
-    } catch(e) { notify('error', 'Bulk update failed'); }
+    } catch { notify('error', 'Bulk update failed'); }
   }, [notify]);
 
-  const deleteStore = useCallback(async (id) => {
-    try { 
-      await storeService.delete(id); 
-      setStores(prev => prev.filter(s => s.id !== id));
-      notify('success', 'Store removed'); 
-    }
-    catch(e) { notify('error', 'Delete failed'); }
-  }, [notify]);
-
-  const toggleStoreStatus = useCallback(async (id) => {
+const toggleStoreStatus = useCallback(async (id) => {
     const store = stores.find(s => s.id === id);
     if (!store) return;
     try { 
@@ -173,7 +161,7 @@ function App() {
       setActivities(prev => [newActivity, ...prev]);
       notify('success', 'Activity logged'); 
     }
-    catch(e) { notify('error', 'Failed to log activity'); }
+    catch { notify('error', 'Failed to log activity'); }
   }, [notify]);
 
   const resolveActivity = useCallback(async (id) => { 
@@ -182,7 +170,7 @@ function App() {
       setActivities(prev => prev.map(a => a.id === id ? updated : a));
       notify('success', 'Task marked as done'); 
     }
-    catch(e) { notify('error', 'Action failed'); }
+    catch { notify('error', 'Action failed'); }
   }, [notify]);
 
   const bulkResolveActivities = useCallback(async (ids) => {
@@ -191,7 +179,7 @@ function App() {
       setActivities(prev => prev.map(a => ids.includes(a.id) ? { ...a, is_resolved: true } : a));
       notify('success', `${ids.length} tasks completed`); 
     }
-    catch(e) { notify('error', 'Bulk action failed'); }
+    catch { notify('error', 'Bulk action failed'); }
   }, [notify]);
 
   const addLibraryLink = useCallback(async (name, url, description) => {
@@ -200,7 +188,7 @@ function App() {
       setLinks(prev => [newLink, ...prev]);
       notify('success', 'Link added to library!'); 
     }
-    catch(e) { notify('error', 'Error adding link'); }
+    catch { notify('error', 'Error adding link'); }
   }, [notify]);
 
   const updateLibraryLink = useCallback(async (id, updates) => {
@@ -209,7 +197,7 @@ function App() {
       setLinks(prev => prev.map(l => l.id === id ? updated : l));
       notify('success', 'Link updated successfully!'); 
     }
-    catch(e) { notify('error', 'Failed to update link'); }
+    catch { notify('error', 'Failed to update link'); }
   }, [notify]);
 
   const deleteLibraryLink = useCallback(async (id) => {
@@ -218,7 +206,7 @@ function App() {
       setLinks(prev => prev.filter(l => l.id !== id));
       notify('success', 'Link removed from library'); 
     }
-    catch(e) { notify('error', 'Error removing link'); }
+    catch { notify('error', 'Error removing link'); }
   }, [notify]);
 
   const addOffer = useCallback(async (offer) => {
@@ -226,7 +214,7 @@ function App() {
       const newOffer = await offersService.create(offer);
       setOffers(prev => [newOffer, ...prev]);
       notify('success', 'تم إضافة العرض');
-    } catch(e) { notify('error', 'فشل إضافة العرض'); }
+    } catch { notify('error', 'فشل إضافة العرض'); }
   }, [notify]);
 
   const updateOffer = useCallback(async (id, updates) => {
@@ -234,7 +222,7 @@ function App() {
       const updated = await offersService.update(id, updates);
       setOffers(prev => prev.map(o => o.id === id ? updated : o));
       notify('success', 'تم تحديث العرض');
-    } catch(e) { notify('error', 'فشل التحديث'); }
+    } catch { notify('error', 'فشل التحديث'); }
   }, [notify]);
 
   const deleteOffer = useCallback(async (id) => {
@@ -242,7 +230,7 @@ function App() {
       await offersService.delete(id);
       setOffers(prev => prev.filter(o => o.id !== id));
       notify('success', 'تم حذف العرض');
-    } catch(e) { notify('error', 'فشل الحذف'); }
+    } catch { notify('error', 'فشل الحذف'); }
   }, [notify]);
 
   const addOutcome = useCallback(async (name) => { 
@@ -251,7 +239,7 @@ function App() {
       setOutcomes(prev => [...prev, newOutcome]);
       notify('success', 'Outcome added'); 
     }
-    catch(e) { notify('error', 'Failed to add outcome'); }
+    catch { notify('error', 'Failed to add outcome'); }
   }, [notify]);
 
   const deleteOutcome = useCallback(async (id) => { 
@@ -260,7 +248,7 @@ function App() {
       setOutcomes(prev => prev.filter(o => o.id !== id));
       notify('success', 'Outcome removed'); 
     }
-    catch(e) { notify('error', 'Delete failed'); }
+    catch { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addZone = useCallback(async (name) => { 
@@ -269,7 +257,7 @@ function App() {
       setZones(prev => [...prev, newZone]);
       notify('success', 'Zone added'); 
     }
-    catch(e) { notify('error', 'Failed to add zone'); }
+    catch { notify('error', 'Failed to add zone'); }
   }, [notify]);
 
   const deleteZone = useCallback(async (id) => { 
@@ -278,7 +266,7 @@ function App() {
       setZones(prev => prev.filter(z => z.id !== id));
       notify('success', 'Zone removed'); 
     }
-    catch(e) { notify('error', 'Delete failed'); }
+    catch { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addCategory = useCallback(async (name) => { 
@@ -287,7 +275,7 @@ function App() {
       setCategories(prev => [...prev, newCat]);
       notify('success', 'Category added'); 
     }
-    catch(e) { notify('error', 'Failed to add category'); }
+    catch { notify('error', 'Failed to add category'); }
   }, [notify]);
 
   const deleteCategory = useCallback(async (id) => { 
@@ -296,7 +284,7 @@ function App() {
       setCategories(prev => prev.filter(c => c.id !== id));
       notify('success', 'Category removed'); 
     }
-    catch(e) { notify('error', 'Delete failed'); }
+    catch { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const softDeleteStore = useCallback(async (id) => {
@@ -304,7 +292,7 @@ function App() {
       await storeService.softDelete(id); 
       setStores(prev => prev.map(s => s.id === id ? { ...s, deleted_at: new Date().toISOString() } : s));
       notify('success', 'Store moved to Recycle Bin'); 
-    } catch(e) { notify('error', 'Could not delete store'); }
+    } catch { notify('error', 'Could not delete store'); }
   }, [notify]);
 
   const restoreStore = useCallback(async (id) => {
@@ -312,7 +300,7 @@ function App() {
       await storeService.restore(id); 
       setStores(prev => prev.map(s => s.id === id ? { ...s, deleted_at: null } : s));
       notify('success', 'Store restored successfully!'); 
-    } catch(e) { notify('error', 'Restore failed'); }
+    } catch { notify('error', 'Restore failed'); }
   }, [notify]);
 
   const permanentDeleteStore = useCallback(async (id) => {
@@ -320,7 +308,7 @@ function App() {
       await storeService.delete(id); 
       setStores(prev => prev.filter(s => s.id !== id));
       notify('success', 'Store permanently removed'); 
-    } catch(e) { notify('error', 'Delete failed'); }
+    } catch { notify('error', 'Delete failed'); }
   }, [notify]);
 
   const addClosureReason = useCallback(async (name) => {
@@ -329,7 +317,7 @@ function App() {
       setClosureReasons(prev => [...prev, newReason]);
       notify('success', 'Reason added'); 
     }
-    catch(e) { notify('error', 'Failed to add reason'); }
+    catch { notify('error', 'Failed to add reason'); }
   }, [notify]);
 
   const deleteClosureReason = useCallback(async (id) => {
@@ -338,7 +326,7 @@ function App() {
       setClosureReasons(prev => prev.filter(cr => cr.id !== id));
       notify('success', 'Reason removed'); 
     }
-    catch(e) { notify('error', 'Delete failed'); }
+    catch { notify('error', 'Delete failed'); }
   }, [notify]);
 
 

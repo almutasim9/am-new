@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star, Search } from 'lucide-react';
 import { storeService } from '../services/api';
 
@@ -266,7 +265,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
 
       if (anyMatched > 0) {
         await storeService.bulkUpdateMetrics(updatesToUpload);
-        notify('success', `تم تحديث ومسح البيانات القديمة لجميع المتاجر. المتاجر المطابقة: ${actuallyMatchedCount} من الشيتات (${sheetsFound.join('، ')})`);
+        notify('success', `تم تحديث ومسح البيانات القديمة لجميع المتاجر. المتاجر المطابقة: ${anyMatched} من الشيتات (${sheetsFound.join('، ')})`);
         if (onFetchInitialData) {
           await onFetchInitialData();
         }

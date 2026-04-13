@@ -112,15 +112,14 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   };
 
   const filteredLog = useMemo(() => {
-    const result = activities.filter(act => {
-      const storeName = getStoreName(act.store_id).toLowerCase();
+    const q = logSearchTerm.toLowerCase();
+    return activities.filter(act => {
+      const storeName = (stores.find(s => s.id === act.store_id)?.name || 'Unknown Store').toLowerCase();
       const notes = (act.notes || '').toLowerCase();
-      const matchesSearch = storeName.includes(logSearchTerm.toLowerCase()) ||
-                            notes.includes(logSearchTerm.toLowerCase());
+      const matchesSearch = storeName.includes(q) || notes.includes(q);
       const matchesStatus = !logStatusFilter || act.outcome_id === parseInt(logStatusFilter);
       return matchesSearch && matchesStatus;
     });
-    return result;
   }, [activities, stores, logSearchTerm, logStatusFilter]);
 
   const totalPages = Math.ceil(filteredLog.length / PAGE_SIZE);

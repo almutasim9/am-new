@@ -19,7 +19,6 @@ const StoreList = ({
   onSelectStore,
   onAddStore,
   onUpdateStore,
-  onToggleStatus,
   onDeleteStore,
   onBulkAdd,
   onBulkUpdate,
@@ -131,7 +130,7 @@ const StoreList = ({
             onNotify?.('success', `Synchronized ${toProcess.length} stores (Updated & Added)`);
           }
         }
-      } catch (err) {
+      } catch {
         onNotify?.('error', 'Failed to parse the Excel file.');
       } finally {
         setIsImporting(false);
