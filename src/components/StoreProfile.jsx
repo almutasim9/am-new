@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import ActivityForm from './ActivityForm';
+import StoreEditModal from './StoreEditModal';
 
 
 const StoreProfile = ({
@@ -23,8 +24,7 @@ const StoreProfile = ({
   onAddActivity,
   onNotify
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState(store ? { ...store } : {});
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [activePerfTab, setActivePerfTab] = useState('monthly');
   const [isActivityFormOpen, setIsActivityFormOpen] = useState(false);
@@ -59,29 +59,8 @@ const StoreProfile = ({
     return `https://wa.me/${digits}`;
   };
 
-  const handleSave = () => {
-    const {
-      id, name, category, owner_name, phone, zone, area,
-      address, map_link, cashier_phone, accounts_manager_phone,
-      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id
-    } = editForm;
-
-    const sanitizedData = {
-      name, category, owner_name, phone, zone, area,
-      address, map_link, cashier_phone, accounts_manager_phone,
-      restaurant_manager_phone, has_pos, has_sim, is_active, brand_id
-    };
-
-    onUpdate(id, sanitizedData);
-    setIsEditing(false);
-  };
-
   const handleToggleHardware = (field) => {
-    if (isEditing) {
-      setEditForm({ ...editForm, [field]: !editForm[field] });
-    } else {
-      onUpdate(store.id, { [field]: !store[field] });
-    }
+    onUpdate(store.id, { [field]: !store[field] });
   };
 
   const handleConfirmStoreClosure = async () => {
@@ -117,7 +96,7 @@ const StoreProfile = ({
   };
 
   const HardwareControl = ({ label, field, icon: Icon }) => {
-    const isActive = isEditing ? !!editForm[field] : !!store[field];
+    const isActive = !!store[field];
     return (
       <div
         className={`hardware-card ${isActive ? 'active' : ''} ${isSchemaOutdated ? 'disabled' : ''}`}
@@ -138,41 +117,31 @@ const StoreProfile = ({
     );
   };
 
-  const InfoField = ({ label, icon: Icon, value, field, placeholder }) => (
+  const InfoField = ({ label, icon: Icon, value, field }) => (
     <div className="info-field-group">
       <div className="field-header">
         <Icon size={13} />
         <span>{label}</span>
       </div>
-      {isEditing ? (
-        <input
-          type="text"
-          className="edit-input-premium"
-          value={editForm[field] || ''}
-          placeholder={placeholder}
-          onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
-        />
-      ) : (
-        <div className="field-value-row">
-          <div className="field-value">{value || <span className="field-empty">Not provided</span>}</div>
-          {value && (label.includes('Phone') || field.includes('phone')) && (
-            <button
-              className="copy-btn-subtle"
-              onClick={() => {
-                navigator.clipboard.writeText(value);
-                onNotify?.('success', `${label} copied!`);
-              }}
-              title="Copy"
-            >
-              <Copy size={11} />
-            </button>
-          )}
-        </div>
-      )}
+      <div className="field-value-row">
+        <div className="field-value">{value || <span className="field-empty">Not provided</span>}</div>
+        {value && (label.includes('Phone') || field.includes('phone')) && (
+          <button
+            className="copy-btn-subtle"
+            onClick={() => {
+              navigator.clipboard.writeText(value);
+              onNotify?.('success', `${label} copied!`);
+            }}
+            title="Copy"
+          >
+            <Copy size={11} />
+          </button>
+        )}
+      </div>
     </div>
   );
 
-  const ContactRow = ({ label, icon: Icon, value, field }) => {
+  const ContactRow = ({ label, icon: Icon, value }) => {
     const waLink = toWhatsApp(value);
     return (
       <div className="contact-card">
@@ -181,18 +150,9 @@ const StoreProfile = ({
         </div>
         <div className="contact-body">
           <span className="contact-label">{label}</span>
-          {isEditing ? (
-            <input
-              className="edit-input-minimal"
-              value={editForm[field] || ''}
-              placeholder="Phone number"
-              onChange={e => setEditForm({ ...editForm, [field]: e.target.value })}
-            />
-          ) : (
-            <span className="contact-value">{value || <span className="field-empty">Unset</span>}</span>
-          )}
+          <span className="contact-value">{value || <span className="field-empty">Unset</span>}</span>
         </div>
-        {!isEditing && value && (
+        {value && (
           <div className="contact-actions">
             <button
               className="action-icon-btn copy"
@@ -273,16 +233,9 @@ const StoreProfile = ({
                 <Check size={14} /> Re-activate
               </button>
             )}
-            {isEditing ? (
-              <>
-                <button className="sp-btn save" onClick={handleSave}><Check size={14} /> Save</button>
-                <button className="sp-btn cancel" onClick={() => setIsEditing(false)}><X size={14} /></button>
-              </>
-            ) : (
-              <button className="sp-btn edit" onClick={() => { setIsEditing(true); setEditForm({...store}); }}>
-                <Pencil size={14} /> Edit
-              </button>
-            )}
+            <button className="sp-btn edit" onClick={() => setIsEditOpen(true)}>
+              <Pencil size={14} /> Edit
+            </button>
             <button className="sp-btn icon-only danger" onClick={() => setShowDeleteDialog(true)} title="Move to Recycle Bin">
               <Trash2 size={14} />
             </button>
@@ -458,14 +411,11 @@ const StoreProfile = ({
             <div className="info-fields-grid" style={{ gridTemplateColumns: '1fr' }}>
               <InfoField label="Official Address" icon={MapPin} value={store.address} field="address" placeholder="Full Address" />
             </div>
-            {(store.map_link || isEditing) && (
+            {store.map_link && (
               <div style={{ marginTop: '0.875rem' }}>
-                {isEditing && <InfoField label="Google Maps Link" icon={ExternalLink} value={store.map_link} field="map_link" placeholder="Map URL" />}
-                {store.map_link && !isEditing && (
-                  <a href={store.map_link} target="_blank" rel="noopener noreferrer" className="btn-map-hero">
-                    <ExternalLink size={13} /> View on Google Maps
-                  </a>
-                )}
+                <a href={store.map_link} target="_blank" rel="noopener noreferrer" className="btn-map-hero">
+                  <ExternalLink size={13} /> View on Google Maps
+                </a>
               </div>
             )}
           </div>
@@ -539,6 +489,13 @@ const StoreProfile = ({
         stores={[store]}
         outcomes={outcomes}
         initialStoreId={store.id}
+      />
+
+      <StoreEditModal
+        isOpen={isEditOpen}
+        store={store}
+        onClose={() => setIsEditOpen(false)}
+        onSave={onUpdate}
       />
     </div>
   );
