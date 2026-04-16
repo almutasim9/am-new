@@ -57,13 +57,36 @@ function App() {
     setTimeout(() => setToast(null), 5000);
   }, []);
 
-  const stats = {
-    totalStores: stores.filter(s => s.is_active && !s.deleted_at).length,
-    inactiveStores: stores.filter(s => !s.is_active && !s.deleted_at).length,
-    totalActivities: activities.length,
-    pendingTasks: activities.filter(a => !a.is_resolved).length,
-    completedTasks: activities.filter(a => a.is_resolved).length
-  };
+  // Derived data — memoized so the summary cards and filtered lists
+  // don't recompute (and children don't re-render) on unrelated state updates.
+  const stats = useMemo(() => {
+    let totalStores = 0, inactiveStores = 0;
+    for (const s of stores) {
+      if (s.deleted_at) continue;
+      if (s.is_active) totalStores++; else inactiveStores++;
+    }
+    let pendingTasks = 0, completedTasks = 0;
+    for (const a of activities) {
+      if (a.is_resolved) completedTasks++; else pendingTasks++;
+    }
+    return {
+      totalStores,
+      inactiveStores,
+      totalActivities: activities.length,
+      pendingTasks,
+      completedTasks,
+    };
+  }, [stores, activities]);
+
+  const deletedStores = useMemo(
+    () => stores.filter(s => !!s.deleted_at),
+    [stores]
+  );
+
+  const activeStores = useMemo(
+    () => stores.filter(s => !s.deleted_at),
+    [stores]
+  );
 
   const requestPermission = useCallback(async () => {
     const granted = await requestNotificationPermission();
@@ -479,7 +502,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       case 'dashboard': return <Overview stats={stats} activities={activities} stores={stores} onNavigate={setActiveTab} />;
       case 'stores': return (
         <StoreList 
-          stores={stores.filter(s => !s.deleted_at)} 
+          stores={activeStores}
           activities={activities}
           outcomes={outcomes}
           categories={categories}
@@ -507,7 +530,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       case 'menu-extractor': return <MenuExtractor />;
       case 'recycle': return (
         <RecycleBin 
-          deletedStores={stores.filter(s => !!s.deleted_at)}
+          deletedStores={deletedStores}
           onRestoreStore={restoreStore}
           onPermanentDeleteStore={permanentDeleteStore}
         />
@@ -518,7 +541,7 @@ const toggleStoreStatus = useCallback(async (id) => {
           zones={zones} 
           categories={categories}
           closureReasons={closureReasons}
-          deletedStores={stores.filter(s => !!s.deleted_at)}
+          deletedStores={deletedStores}
           initialTab="config"
           onAddOutcome={addOutcome}
           onDeleteOutcome={deleteOutcome}

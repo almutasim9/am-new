@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { ClipboardList, Calendar, CheckCircle, Clock, FileDown, FilePlus, X, Download } from 'lucide-react';
 import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
 import ActivityForm from './ActivityForm';
 
 
@@ -69,7 +68,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
     }).length;
   }, [activities, exportFrom, exportTo]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import('xlsx');
     const filtered = (!exportFrom && !exportTo)
       ? activities
       : activities.filter(act => {

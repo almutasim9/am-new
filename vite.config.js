@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vitejs.dev/config/
 export default defineConfig({
   build: {
+    // Raise the chunk-size warning threshold; xlsx/recharts are already
+    // lazy-loaded chunks, not part of the main bundle.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -13,6 +16,8 @@ export default defineConfig({
           'motion': ['framer-motion'],
           'charts': ['recharts'],
           'xlsx': ['xlsx'],
+          'date-fns': ['date-fns'],
+          'icons': ['lucide-react'],
         }
       }
     }
