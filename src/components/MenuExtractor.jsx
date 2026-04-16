@@ -16,7 +16,8 @@ const fileToBase64 = (file) =>
 
 /* ── Excel export ── */
 const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
-  const XLSX = (await import('xlsx')).default;
+  const xlsxMod = await import('xlsx');
+  const XLSX = xlsxMod.default ?? xlsxMod;
   const rows = [['القسم', 'اسم الصنف', 'السعر', 'الوصف']];
   for (const sec of sections) {
     for (const item of sec.items) {
@@ -30,20 +31,14 @@ const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
   XLSX.writeFile(wb, fileName);
 };
 
-/* ── List available models ── */
-const listModels = async (apiKey) => {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message || `Error ${res.status}`);
-  // Return only models that support generateContent and look like gemini
-  return (data.models || [])
-    .filter(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'))
-    .map(m => ({ id: m.name.replace('models/', ''), displayName: m.displayName }));
-};
+/* ── Groq vision models ── */
+const GROQ_MODELS = [
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', displayName: 'Llama 4 Scout (Best)' },
+  { id: 'llama-3.2-90b-vision-preview',              displayName: 'Llama 3.2 90B Vision' },
+  { id: 'llama-3.2-11b-vision-preview',              displayName: 'Llama 3.2 11B Vision (Fast)' },
+];
 
-/* ── Gemini API call ── */
+/* ── Groq API call ── */
 const extractMenu = async (base64Data, mimeType, apiKey, modelId) => {
   const prompt = `You are a professional menu extraction assistant.
 Analyze this menu image and extract ALL sections with their items and prices.
@@ -64,30 +59,39 @@ Rules:
 - If a price is not visible write "—".
 - Extract every visible item.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
-
-  const res = await fetch(url, {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: mimeType, data: base64Data } },
-          { text: prompt }
-        ]
-      }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
-    })
+      model: modelId,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mimeType};base64,${base64Data}` },
+            },
+            { type: 'text', text: prompt },
+          ],
+        },
+      ],
+      max_tokens: 4096,
+      temperature: 0.1,
+    }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `Gemini API error ${res.status}`;
+    const msg = err?.error?.message || `Groq API error ${res.status}`;
     throw new Error(msg);
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const text = data?.choices?.[0]?.message?.content ?? '';
   // Strip accidental markdown fences
   const clean = text.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
   return JSON.parse(clean);
@@ -98,26 +102,21 @@ Rules:
 ══════════════════════════════════════════ */
 const MenuExtractor = () => {
   /* API key */
-  const [apiKey, setApiKey]       = useState(() => localStorage.getItem('mp_gemini_key') || '');
-  const [keyInput, setKeyInput]   = useState('');
-  const [showKey, setShowKey]     = useState(false);
-  const isKeySet                  = !!apiKey;
+  const [apiKey, setApiKey]     = useState(() => localStorage.getItem('mp_groq_key') || '');
+  const [keyInput, setKeyInput] = useState('');
+  const [showKey, setShowKey]   = useState(false);
+  const isKeySet                = !!apiKey;
 
   /* Model selection */
-  const [availableModels, setAvailableModels] = useState(() => {
-    const saved = localStorage.getItem('mp_gemini_models');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [selectedModel, setSelectedModel] = useState(
-    () => localStorage.getItem('mp_gemini_model') || 'gemini-1.5-flash'
+    () => localStorage.getItem('mp_groq_model') || 'meta-llama/llama-4-scout-17b-16e-instruct'
   );
-  const [isFetchingModels, setIsFetchingModels] = useState(false);
 
   /* Image */
-  const [imageFile, setImageFile]     = useState(null);
+  const [imageFile, setImageFile]       = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [isDragging, setIsDragging]   = useState(false);
-  const fileInputRef                  = useRef(null);
+  const [isDragging, setIsDragging]     = useState(false);
+  const fileInputRef                    = useRef(null);
 
   /* Processing */
   const [isProcessing, setIsProcessing] = useState(false);
@@ -126,47 +125,25 @@ const MenuExtractor = () => {
   const [collapsed, setCollapsed]       = useState({});
 
   /* ── key management ── */
-  const saveKey = async () => {
+  const saveKey = () => {
     const k = keyInput.trim();
     if (!k) { setError('أدخل المفتاح أولاً'); return; }
-    localStorage.setItem('mp_gemini_key', k);
+    if (!k.startsWith('gsk_')) { setError('المفتاح يجب أن يبدأ بـ gsk_'); return; }
+    localStorage.setItem('mp_groq_key', k);
     setApiKey(k);
     setKeyInput('');
     setError(null);
-    // Auto-fetch available models after saving key
-    await fetchModels(k);
   };
 
   const clearKey = () => {
-    localStorage.removeItem('mp_gemini_key');
-    localStorage.removeItem('mp_gemini_models');
+    localStorage.removeItem('mp_groq_key');
     setApiKey('');
-    setAvailableModels([]);
-  };
-
-  const fetchModels = async (key = apiKey) => {
-    setIsFetchingModels(true);
-    setError(null);
-    try {
-      const models = await listModels(key);
-      setAvailableModels(models);
-      localStorage.setItem('mp_gemini_models', JSON.stringify(models));
-      if (models.length > 0) {
-        const first = models[0].id;
-        setSelectedModel(first);
-        localStorage.setItem('mp_gemini_model', first);
-      }
-    } catch (err) {
-      setError(`فشل جلب المودلات: ${err.message}`);
-    } finally {
-      setIsFetchingModels(false);
-    }
   };
 
   /* ── image handling ── */
   const handleFile = useCallback((file) => {
     if (!file?.type.startsWith('image/')) {
-      setError('الرجاء رفع صورة (JPG, PNG, WEBP, HEIC)');
+      setError('الرجاء رفع صورة (JPG, PNG, WEBP)');
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -192,7 +169,7 @@ const MenuExtractor = () => {
     setError(null);
     setSections(null);
     try {
-      const b64  = await fileToBase64(imageFile);
+      const b64    = await fileToBase64(imageFile);
       const result = await extractMenu(b64, imageFile.type, apiKey, selectedModel);
       if (!Array.isArray(result) || result.length === 0)
         throw new Error('لم يُعثر على بيانات في الصورة — جرّب صورة أوضح');
@@ -290,14 +267,6 @@ const MenuExtractor = () => {
           background: var(--background-color); color: var(--text-primary); outline: none; cursor: pointer;
         }
         .me-model-select:focus { border-color: var(--primary-color); }
-        .me-fetch-btn {
-          display: flex; align-items: center; gap: 5px; padding: 7px 13px;
-          background: var(--surface-hover); border: 1px solid var(--border-color);
-          border-radius: 9px; font-size: 0.78rem; font-weight: 700;
-          color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: 0.15s;
-        }
-        .me-fetch-btn:hover { background: rgba(79,70,229,0.1); color: var(--primary-color); border-color: var(--primary-color); }
-        .me-fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* ── Main grid ── */
         .me-grid {
@@ -444,7 +413,7 @@ const MenuExtractor = () => {
       <div className="me-header">
         <div>
           <div className="me-title"><Utensils size={24} /> استخراج المنيو</div>
-          <div className="me-subtitle">ارفع صورة منيو وسيتم استخراج الأقسام والأصناف والأسعار بواسطة Gemini AI</div>
+          <div className="me-subtitle">ارفع صورة منيو وسيتم استخراج الأقسام والأصناف والأسعار بواسطة Groq AI — مجاني</div>
         </div>
         {sections && (
           <button className="me-export-btn" onClick={() => exportToExcel(sections)}>
@@ -455,7 +424,7 @@ const MenuExtractor = () => {
 
       {/* ── API key card ── */}
       <div className="me-key-card">
-        <div className="me-key-section-label"><Key size={13} /> Google Gemini API Key</div>
+        <div className="me-key-section-label"><Key size={13} /> Groq API Key — مجاني</div>
         {isKeySet ? (
           <>
             <div className="me-key-set-row">
@@ -470,27 +439,16 @@ const MenuExtractor = () => {
               <select
                 className="me-model-select"
                 value={selectedModel}
-                onChange={e => { setSelectedModel(e.target.value); localStorage.setItem('mp_gemini_model', e.target.value); }}
+                onChange={e => {
+                  setSelectedModel(e.target.value);
+                  localStorage.setItem('mp_groq_model', e.target.value);
+                }}
               >
-                {availableModels.length === 0
-                  ? <option value={selectedModel}>{selectedModel}</option>
-                  : availableModels.map(m => (
-                      <option key={m.id} value={m.id}>{m.displayName || m.id}</option>
-                    ))
-                }
+                {GROQ_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>{m.displayName}</option>
+                ))}
               </select>
-              <button className="me-fetch-btn" onClick={() => fetchModels()} disabled={isFetchingModels}>
-                {isFetchingModels
-                  ? <><Loader2 size={13} style={{ animation: 'spin 0.9s linear infinite' }} /> جاري...</>
-                  : <><RefreshCw size={13} /> جلب المودلات</>
-                }
-              </button>
             </div>
-            {availableModels.length === 0 && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 6 }}>
-                اضغط "جلب المودلات" لمعرفة المودلات المتاحة لمفتاحك
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -498,7 +456,7 @@ const MenuExtractor = () => {
               <input
                 className="me-key-input"
                 type={showKey ? 'text' : 'password'}
-                placeholder="AIza..."
+                placeholder="gsk_..."
                 value={keyInput}
                 onChange={e => setKeyInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && saveKey()}
@@ -510,10 +468,10 @@ const MenuExtractor = () => {
             </div>
             <div className="me-key-hint">
               احصل على مفتاحك المجاني من{' '}
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
-                aistudio.google.com
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
+                console.groq.com/keys
               </a>
-              {' '}· مجاني 1500 طلب/يوم · يُحفظ في المتصفح فقط ولا يُرسل لأي خادم
+              {' '}· مجاني · يُحفظ في المتصفح فقط
             </div>
           </>
         )}
@@ -592,7 +550,7 @@ const MenuExtractor = () => {
           {isProcessing && (
             <div className="me-loading">
               <Loader2 size={40} strokeWidth={1.4} style={{ animation: 'spin 0.9s linear infinite', color: 'var(--primary-color)' }} />
-              <div className="me-loading-title">Gemini يحلل الصورة...</div>
+              <div className="me-loading-title">Groq يحلل الصورة...</div>
               <div className="me-loading-sub">قد يستغرق 10–20 ثانية</div>
             </div>
           )}
