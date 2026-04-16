@@ -1,10 +1,9 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion } from 'framer-motion';
-import { 
-  subHours, subDays, subMonths, isAfter, isSameDay, 
-  startOfDay, endOfDay, startOfWeek, endOfWeek, 
-  isWithinInterval, format 
+import {
+  startOfDay, endOfDay, startOfWeek, endOfWeek,
+  isWithinInterval, format
 } from 'date-fns';
 import { Calendar, Clock, Filter, ChevronDown, RefreshCw, Layers } from 'lucide-react';
 
@@ -39,7 +38,7 @@ const Stats = ({ calls, outcomes, stores }) => {
           start: startOfDay(new Date(activeFilters.startDate)), 
           end: endOfDay(new Date(activeFilters.endDate)) 
         });
-      } catch (e) {
+      } catch {
         return true; // Fallback if invalid date
       }
     });

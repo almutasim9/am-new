@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Target, TrendingUp, AlertCircle, CheckCircle2, ChevronRight, Settings, Loader2, Save } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Target, TrendingUp, AlertCircle, CheckCircle2, Settings, Loader2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  format, startOfWeek, endOfWeek, isWithinInterval, 
-  isSameDay, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSunday, isMonday, isTuesday, isWednesday, isThursday
+import {
+  format, startOfWeek, endOfWeek, isWithinInterval,
+  isSameDay, eachDayOfInterval
 } from 'date-fns';
 import { targetService } from '../services/api';
 
@@ -21,13 +20,8 @@ const TargetSection = ({ activities }) => {
   const [saveError, setSaveError] = useState(false);
 
   const currentMonthYear = format(new Date(), 'yyyy-MM');
-  const now = new Date();
 
-  useEffect(() => {
-    fetchTarget();
-  }, []);
-
-  const fetchTarget = async () => {
+  const fetchTarget = useCallback(async () => {
     try {
       const data = await targetService.getForMonth(currentMonthYear);
       if (data) {
@@ -49,7 +43,11 @@ const TargetSection = ({ activities }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentMonthYear]);
+
+  useEffect(() => {
+    fetchTarget();
+  }, [fetchTarget]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -73,10 +71,11 @@ const TargetSection = ({ activities }) => {
   const stats = useMemo(() => {
     if (!target) return null;
 
+    const now = new Date();
     const sun = startOfWeek(now, { weekStartsOn: 0 });
     const sat = endOfWeek(now, { weekStartsOn: 0 });
 
-    const weekCalls = activities.filter(a => 
+    const weekCalls = activities.filter(a =>
       isWithinInterval(new Date(a.created_at), { start: sun, end: sat })
     );
 
@@ -94,7 +93,6 @@ const TargetSection = ({ activities }) => {
     const workDaysPassed = weekDays.filter(d => d <= now && isWorkDay(d)).length;
 
     const dailyTarget = totalWorkDays > 0 ? target.weekly_goal / totalWorkDays : 0;
-    const expectedSoFar = dailyTarget * workDaysPassed;
 
     const weeklyProgress = target.weekly_goal > 0 ? (weekCalls.length / target.weekly_goal) * 100 : 0;
     const status = todayCalls >= Math.ceil(dailyTarget) ? 'exceeded' : 'on-track';

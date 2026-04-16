@@ -412,7 +412,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       supabase.removeChannel(librarySub);
       window.removeEventListener('add-activity', handleCustomAddActivity);
     };
-  }, [addActivity]);
+  }, [addActivity, fetchInitialData, handleRealtime]);
 
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Upload, Database, CheckCircle, AlertCircle, BarChart3, TrendingUp, RefreshCw, ShoppingCart, DollarSign, Star, Search } from 'lucide-react';
 import { storeService } from '../services/api';
 
@@ -22,13 +22,6 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
       return {}; 
     }
     return store.performance_data[activeTab];
-  };
-
-  const getActiveTabLabel = () => {
-    if (activeTab === 'monthly') return 'الشهر الجاري';
-    if (activeTab === 'commercial') return 'تجاري (19-18)';
-    if (activeTab === 'yesterday') return 'البارحة';
-    return '';
   };
 
   // Filter stores that have performance data on the currently active tab
@@ -575,7 +568,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPerfStores.map((s, idx) => {
+                    {filteredPerfStores.map((s) => {
                       const st = getStats(s);
                       const isSelected = compareIds.includes(s.id);
                       return (
