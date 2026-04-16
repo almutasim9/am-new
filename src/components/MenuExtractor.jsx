@@ -30,10 +30,21 @@ const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
   XLSX.writeFile(wb, fileName);
 };
 
-/* ── Gemini API call ── */
-const GEMINI_MODEL = 'gemini-1.5-flash';
+/* ── List available models ── */
+const listModels = async (apiKey) => {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `Error ${res.status}`);
+  // Return only models that support generateContent and look like gemini
+  return (data.models || [])
+    .filter(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'))
+    .map(m => ({ id: m.name.replace('models/', ''), displayName: m.displayName }));
+};
 
-const extractMenu = async (base64Data, mimeType, apiKey) => {
+/* ── Gemini API call ── */
+const extractMenu = async (base64Data, mimeType, apiKey, modelId) => {
   const prompt = `You are a professional menu extraction assistant.
 Analyze this menu image and extract ALL sections with their items and prices.
 
@@ -53,7 +64,7 @@ Rules:
 - If a price is not visible write "—".
 - Extract every visible item.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -92,6 +103,16 @@ const MenuExtractor = () => {
   const [showKey, setShowKey]     = useState(false);
   const isKeySet                  = !!apiKey;
 
+  /* Model selection */
+  const [availableModels, setAvailableModels] = useState(() => {
+    const saved = localStorage.getItem('mp_gemini_models');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedModel, setSelectedModel] = useState(
+    () => localStorage.getItem('mp_gemini_model') || 'gemini-1.5-flash'
+  );
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+
   /* Image */
   const [imageFile, setImageFile]     = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -105,17 +126,41 @@ const MenuExtractor = () => {
   const [collapsed, setCollapsed]       = useState({});
 
   /* ── key management ── */
-  const saveKey = () => {
+  const saveKey = async () => {
     const k = keyInput.trim();
     if (!k) { setError('أدخل المفتاح أولاً'); return; }
     localStorage.setItem('mp_gemini_key', k);
     setApiKey(k);
     setKeyInput('');
     setError(null);
+    // Auto-fetch available models after saving key
+    await fetchModels(k);
   };
+
   const clearKey = () => {
     localStorage.removeItem('mp_gemini_key');
+    localStorage.removeItem('mp_gemini_models');
     setApiKey('');
+    setAvailableModels([]);
+  };
+
+  const fetchModels = async (key = apiKey) => {
+    setIsFetchingModels(true);
+    setError(null);
+    try {
+      const models = await listModels(key);
+      setAvailableModels(models);
+      localStorage.setItem('mp_gemini_models', JSON.stringify(models));
+      if (models.length > 0) {
+        const first = models[0].id;
+        setSelectedModel(first);
+        localStorage.setItem('mp_gemini_model', first);
+      }
+    } catch (err) {
+      setError(`فشل جلب المودلات: ${err.message}`);
+    } finally {
+      setIsFetchingModels(false);
+    }
   };
 
   /* ── image handling ── */
@@ -148,7 +193,7 @@ const MenuExtractor = () => {
     setSections(null);
     try {
       const b64  = await fileToBase64(imageFile);
-      const result = await extractMenu(b64, imageFile.type, apiKey);
+      const result = await extractMenu(b64, imageFile.type, apiKey, selectedModel);
       if (!Array.isArray(result) || result.length === 0)
         throw new Error('لم يُعثر على بيانات في الصورة — جرّب صورة أوضح');
       setSections(result);
@@ -238,6 +283,21 @@ const MenuExtractor = () => {
           font-size: 0.72rem; color: var(--text-dim); margin-top: 7px; line-height: 1.5;
         }
         .me-key-hint a { color: var(--primary-color); text-decoration: none; font-weight: 700; }
+        .me-model-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .me-model-select {
+          flex: 1; min-width: 0; padding: 7px 10px; border: 1.5px solid var(--border-color);
+          border-radius: 9px; font-size: 0.82rem; font-weight: 600;
+          background: var(--background-color); color: var(--text-primary); outline: none; cursor: pointer;
+        }
+        .me-model-select:focus { border-color: var(--primary-color); }
+        .me-fetch-btn {
+          display: flex; align-items: center; gap: 5px; padding: 7px 13px;
+          background: var(--surface-hover); border: 1px solid var(--border-color);
+          border-radius: 9px; font-size: 0.78rem; font-weight: 700;
+          color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: 0.15s;
+        }
+        .me-fetch-btn:hover { background: rgba(79,70,229,0.1); color: var(--primary-color); border-color: var(--primary-color); }
+        .me-fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* ── Main grid ── */
         .me-grid {
@@ -397,13 +457,41 @@ const MenuExtractor = () => {
       <div className="me-key-card">
         <div className="me-key-section-label"><Key size={13} /> Google Gemini API Key</div>
         {isKeySet ? (
-          <div className="me-key-set-row">
-            <div className="me-key-status">
-              <CheckCircle2 size={16} />
-              المفتاح محفوظ — {apiKey.slice(0, 8)}••••••••
+          <>
+            <div className="me-key-set-row">
+              <div className="me-key-status">
+                <CheckCircle2 size={16} />
+                المفتاح محفوظ — {apiKey.slice(0, 8)}••••••••
+              </div>
+              <button className="me-key-change-btn" onClick={clearKey}>تغيير المفتاح</button>
             </div>
-            <button className="me-key-change-btn" onClick={clearKey}>تغيير المفتاح</button>
-          </div>
+            {/* Model selector */}
+            <div className="me-model-row">
+              <select
+                className="me-model-select"
+                value={selectedModel}
+                onChange={e => { setSelectedModel(e.target.value); localStorage.setItem('mp_gemini_model', e.target.value); }}
+              >
+                {availableModels.length === 0
+                  ? <option value={selectedModel}>{selectedModel}</option>
+                  : availableModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.displayName || m.id}</option>
+                    ))
+                }
+              </select>
+              <button className="me-fetch-btn" onClick={() => fetchModels()} disabled={isFetchingModels}>
+                {isFetchingModels
+                  ? <><Loader2 size={13} style={{ animation: 'spin 0.9s linear infinite' }} /> جاري...</>
+                  : <><RefreshCw size={13} /> جلب المودلات</>
+                }
+              </button>
+            </div>
+            {availableModels.length === 0 && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 6 }}>
+                اضغط "جلب المودلات" لمعرفة المودلات المتاحة لمفتاحك
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div className="me-key-input-row">
