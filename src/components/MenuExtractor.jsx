@@ -31,7 +31,7 @@ const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
 };
 
 /* ── Gemini API call ── */
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 const extractMenu = async (base64Data, mimeType, apiKey) => {
   const prompt = `You are a professional menu extraction assistant.
@@ -53,7 +53,7 @@ Rules:
 - If a price is not visible write "—".
 - Extract every visible item.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
     method: 'POST',
