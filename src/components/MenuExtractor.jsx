@@ -31,7 +31,7 @@ const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
 };
 
 /* ── Gemini API call ── */
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-1.5-flash-latest';
 
 const extractMenu = async (base64Data, mimeType, apiKey) => {
   const prompt = `You are a professional menu extraction assistant.
