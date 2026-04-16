@@ -13,14 +13,13 @@ const RecycleBin = ({
   const [viewMode, setViewMode] = React.useState('grid'); // 'grid' or 'list'
   const [confirmConfig, setConfirmConfig] = React.useState({ isOpen: false, type: 'danger', store: null });
 
-  const nowRef = React.useRef(Date.now());
   const getDaysRemaining = (deletedAt) => {
     if (!deletedAt) return 30;
-    const diff = new Date(deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000 - nowRef.current;
+    const diff = new Date(deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000 - Date.now();
     return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
   };
 
-  // Auto-surface stores that passed 30 days (should be hard-deleted but no backend job exists yet)
+  // Hard-delete is handled by a scheduled Postgres job (see migrations/2026_04_16_recyclebin_cleanup.sql)
   const filtered = deletedStores
     .filter(s =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,5 +1,13 @@
 import { supabase } from '../supabaseClient';
 
+// Resolve the current user's id — needed so RLS-owned inserts pass the
+// `owner_id = auth.uid()` check without the caller having to pass it.
+const currentUserId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user.id;
+};
+
 // Input validation helper
 const validate = (rules) => {
   for (const [field, { value, required, maxLength }] of Object.entries(rules)) {
@@ -22,7 +30,8 @@ export const storeService = {
       name: { value: store.name, required: true, maxLength: 255 },
       phone:{ value: store.phone, maxLength: 50 }
     });
-    const { data, error } = await supabase.from('stores').insert([{ ...store, is_active: true }]).select();
+    const owner_id = await currentUserId();
+    const { data, error } = await supabase.from('stores').insert([{ ...store, is_active: true, owner_id }]).select();
     if (error) throw error;
     return data[0];
   },
@@ -52,18 +61,16 @@ export const storeService = {
     return true;
   },
   async bulkCreate(storesList) {
-    const { data, error } = await supabase.from('stores').upsert(storesList).select();
+    const owner_id = await currentUserId();
+    const stamped = storesList.map(s => ({ ...s, owner_id: s.owner_id || owner_id }));
+    const { data, error } = await supabase.from('stores').upsert(stamped).select();
     if (error) throw error;
     return data;
   },
   async bulkUpdateMetrics(metricsData) {
-    // metricsData is an array of objects: { id, orders, gmv, ratings, avg_cart, discount, delivery, last_sync_date }
-    // Using Promise.all for updates since Supabase single-call bulk update with varying row values is tricky via JS client
-    // without an exposed RPC function.
-    const promises = metricsData.map(item => 
-      supabase.from('stores').update(item).eq('id', item.id)
-    );
-    await Promise.all(promises);
+    // Single upsert request instead of N individual updates
+    const { error } = await supabase.from('stores').upsert(metricsData, { onConflict: 'id' });
+    if (error) throw error;
     return true;
   },
   async bulkUpdate(ids, updates) {
@@ -84,12 +91,14 @@ export const activityService = {
       store_id: { value: activity.store_id, required: true },
       notes:    { value: activity.notes, maxLength: 2000 }
     });
+    const owner_id = await currentUserId();
     const { data, error } = await supabase.from('calls').insert([{
       store_id: activity.store_id,
       outcome_id: activity.outcome_id,
       notes: activity.notes,
       follow_up_date: activity.follow_up_date || null,
-      is_resolved: false
+      is_resolved: false,
+      owner_id
     }]).select();
     if (error) throw error;
     return data[0];
@@ -180,7 +189,8 @@ export const libraryService = {
       name: { value: name, required: true, maxLength: 255 },
       url:  { value: url,  required: true, maxLength: 2048 }
     });
-    const { data, error } = await supabase.from('library_links').insert([{ name, url, description }]).select();
+    const owner_id = await currentUserId();
+    const { data, error } = await supabase.from('library_links').insert([{ name, url, description, owner_id }]).select();
     if (error) throw error;
     return data[0];
   },
@@ -203,7 +213,8 @@ export const offersService = {
   },
   async create(offer) {
     validate({ title: { value: offer.title, required: true, maxLength: 255 } });
-    const { data, error } = await supabase.from('offers').insert([offer]).select();
+    const owner_id = await currentUserId();
+    const { data, error } = await supabase.from('offers').insert([{ ...offer, owner_id }]).select();
     if (error) throw error;
     return data[0];
   },
@@ -226,7 +237,11 @@ export const targetService = {
   },
   async save(target) {
     validate({ weekly_goal: { value: target.weekly_goal, required: true } });
-    const { data, error } = await supabase.from('targets').upsert(target, { onConflict: 'month_year' }).select();
+    const owner_id = await currentUserId();
+    const { data, error } = await supabase
+      .from('targets')
+      .upsert({ ...target, owner_id }, { onConflict: 'owner_id,month_year' })
+      .select();
     if (error) throw error;
     return data[0];
   }
