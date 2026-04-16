@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User, X, Trash2, ChevronLeft, ChevronRight, Gift } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User, X, Trash2, ChevronLeft, ChevronRight, Gift, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
 const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStore, user, isOpen, onClose, isCollapsed, onToggleCollapse }) => {
@@ -18,8 +18,9 @@ const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStor
     { id: 'stats',       icon: BarChart3,        label: 'Statistics'   },
     { id: 'performance', icon: TrendingUp,       label: 'Performance'  },
     { id: 'target',      icon: Target,           label: 'Target'       },
-    { id: 'offers',      icon: Gift,              label: 'العروض'       },
-    { id: 'library',     icon: Bookmark,         label: 'Library'      },
+    { id: 'offers',          icon: Gift,             label: 'العروض'         },
+    { id: 'menu-extractor',  icon: UtensilsCrossed,  label: 'استخراج المنيو' },
+    { id: 'library',         icon: Bookmark,         label: 'Library'        },
     { id: 'settings',    icon: SettingsIcon,     label: 'Settings'     },
     { id: 'recycle',     icon: Trash2,           label: 'Recycle Bin', danger: true },
   ];

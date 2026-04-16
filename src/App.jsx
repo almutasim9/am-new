@@ -21,6 +21,7 @@ import TopBar from './components/layout/TopBar';
 import GlobalSearch from './components/GlobalSearch';
 const PerformanceDashboard = React.lazy(() => import('./components/PerformanceDashboard'));
 const Offers = React.lazy(() => import('./components/Offers'));
+const MenuExtractor = React.lazy(() => import('./components/MenuExtractor'));
 
 import ActivityForm from './components/ActivityForm';
 
@@ -503,6 +504,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       case 'target': return <TargetSection activities={activities} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
       case 'offers': return <Offers offers={offers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} />;
+      case 'menu-extractor': return <MenuExtractor />;
       case 'recycle': return (
         <RecycleBin 
           deletedStores={stores.filter(s => !!s.deleted_at)}
