@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import './StoreProfile.css';
 import {
@@ -44,12 +44,30 @@ const StoreProfile = ({
   const [selectedClosureReasonId, setSelectedClosureReasonId] = useState('');
   const [isProcessingClosure, setIsProcessingClosure] = useState(false);
 
-  if (!store) return null;
+  const storeId = store?.id;
+  const { storeActivities, pendingCount, successRate } = useMemo(() => {
+    if (!storeId) return { storeActivities: [], pendingCount: 0, successRate: 0 };
+    const filtered = [];
+    let resolved = 0;
+    for (const a of activities) {
+      if (a.store_id !== storeId) continue;
+      filtered.push(a);
+      if (a.is_resolved) resolved++;
+    }
+    return {
+      storeActivities: filtered,
+      pendingCount: filtered.length - resolved,
+      successRate: filtered.length ? Math.round((resolved / filtered.length) * 100) : 0,
+    };
+  }, [activities, storeId]);
 
-  const storeActivities = activities.filter(a => a.store_id === store.id);
-  const resolvedCount = storeActivities.filter(a => a.is_resolved).length;
-  const pendingCount = storeActivities.filter(a => !a.is_resolved).length;
-  const successRate = storeActivities.length ? Math.round((resolvedCount / storeActivities.length) * 100) : 0;
+  const outcomeById = useMemo(() => {
+    const m = new Map();
+    for (const o of outcomes) m.set(o.id, o);
+    return m;
+  }, [outcomes]);
+
+  if (!store) return null;
 
   const isSchemaOutdated = store.has_pos == null || store.has_sim == null;
 
@@ -464,7 +482,7 @@ const StoreProfile = ({
                     </div>
                     <div className="v3-content">
                       <div className="v3-header">
-                        <span className="v3-outcome">{outcomes.find(o => o.id === act.outcome_id)?.name || 'Activity'}</span>
+                        <span className="v3-outcome">{outcomeById.get(act.outcome_id)?.name || 'Activity'}</span>
                         <span className="v3-date">{format(new Date(act.created_at), 'MMM dd, HH:mm')}</span>
                       </div>
                       {act.notes && <p className="v3-notes">{act.notes}</p>}
