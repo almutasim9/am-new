@@ -38,6 +38,9 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   const getStoreName = (id) => storeById.get(id)?.name || 'Unknown Store';
   const getOutcomeName = (id) => outcomeById.get(parseInt(id))?.name || 'Status';
 
+  // O(1) per-row "is selected?" check (was O(selected) via Array.includes).
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   const isOverdue = (date, resolved) => {
     if (!date || resolved) return false;
     return new Date(date) < new Date(new Date().setHours(0,0,0,0));
@@ -226,7 +229,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                       <td>
                         <input
                           type="checkbox"
-                          checked={selectedIds.includes(act.id)}
+                          checked={selectedSet.has(act.id)}
                           onChange={() => toggleSelect(act.id)}
                           disabled={act.is_resolved}
                           aria-label={`Select activity for ${getStoreName(act.store_id)}`}
@@ -291,7 +294,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                     <div className="card-top">
                       <input 
                         type="checkbox" 
-                        checked={selectedIds.includes(act.id)} 
+                        checked={selectedSet.has(act.id)} 
                         onChange={() => toggleSelect(act.id)}
                         disabled={act.is_resolved}
                         style={{ width: '20px', height: '20px' }}

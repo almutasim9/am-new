@@ -55,6 +55,8 @@ const StoreList = ({
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   const filteredStores = useMemo(() =>
     stores.filter(s => {
       const matchesSearch =
@@ -340,10 +342,10 @@ const StoreList = ({
                       </thead>
                       <tbody>
                         {pagedStores.map((store) => (
-                          <tr key={store.id} className={`premium-row ${selectedIds.includes(store.id) ? 'row-selected' : ''}`}>
+                          <tr key={store.id} className={`premium-row ${selectedSet.has(store.id) ? 'row-selected' : ''}`}>
                             <td>
                               <input type="checkbox"
-                                checked={selectedIds.includes(store.id)}
+                                checked={selectedSet.has(store.id)}
                                 onChange={() => toggleSelect(store.id)}
                                 onClick={e => e.stopPropagation()}
                               />
