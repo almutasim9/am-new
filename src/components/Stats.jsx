@@ -2,10 +2,11 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 import {
-  startOfDay, endOfDay, startOfWeek, endOfWeek,
+  startOfWeek, endOfWeek,
   isWithinInterval, format
 } from 'date-fns';
 import { Calendar, Clock, Filter, ChevronDown, RefreshCw, Layers } from 'lucide-react';
+import { startOfBaghdadDay, endOfBaghdadDay } from '../utils/tz';
 
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -34,9 +35,9 @@ const Stats = ({ calls, outcomes, stores }) => {
     return calls.filter(c => {
       const callDate = new Date(c.created_at);
       try {
-        return isWithinInterval(callDate, { 
-          start: startOfDay(new Date(activeFilters.startDate)), 
-          end: endOfDay(new Date(activeFilters.endDate)) 
+        return isWithinInterval(callDate, {
+          start: startOfBaghdadDay(activeFilters.startDate),
+          end: endOfBaghdadDay(activeFilters.endDate)
         });
       } catch {
         return true; // Fallback if invalid date

@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ClipboardList, Calendar, CheckCircle, Clock, FileDown, FilePlus, X, Download } from 'lucide-react';
-import { format, formatDistanceToNow, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
+import { format, formatDistanceToNow, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActivityForm from './ActivityForm';
+import { startOfBaghdadDay, endOfBaghdadDay } from '../utils/tz';
 
 
 const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveActivity, onBulkResolve }) => {
@@ -59,8 +60,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
     if (!exportFrom && !exportTo) return activities.length;
     return activities.filter(act => {
       const d = new Date(act.created_at);
-      const from = exportFrom ? startOfDay(new Date(exportFrom)) : null;
-      const to   = exportTo   ? endOfDay(new Date(exportTo))     : null;
+      const from = exportFrom ? startOfBaghdadDay(exportFrom) : null;
+      const to   = exportTo   ? endOfBaghdadDay(exportTo)     : null;
       if (from && to) return isWithinInterval(d, { start: from, end: to });
       if (from) return d >= from;
       if (to)   return d <= to;
@@ -74,8 +75,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
       ? activities
       : activities.filter(act => {
           const d = new Date(act.created_at);
-          const from = exportFrom ? startOfDay(new Date(exportFrom)) : null;
-          const to   = exportTo   ? endOfDay(new Date(exportTo))     : null;
+          const from = exportFrom ? startOfBaghdadDay(exportFrom) : null;
+          const to   = exportTo   ? endOfBaghdadDay(exportTo)     : null;
           if (from && to) return isWithinInterval(d, { start: from, end: to });
           if (from) return d >= from;
           if (to)   return d <= to;
