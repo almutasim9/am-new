@@ -14,11 +14,29 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   const [exportTo, setExportTo] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [logSearchTerm, setLogSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logStatusFilter, setLogStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const getStoreName = (id) => stores.find(s => s.id === id)?.name || 'Unknown Store';
-  const getOutcomeName = (id) => outcomes.find(o => o.id === parseInt(id))?.name || 'Status';
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(logSearchTerm), 300);
+    return () => clearTimeout(t);
+  }, [logSearchTerm]);
+
+  // Lookup maps turn per-row finds into O(1) — matters on large activity lists.
+  const storeById = useMemo(() => {
+    const m = new Map();
+    for (const s of stores) m.set(s.id, s);
+    return m;
+  }, [stores]);
+  const outcomeById = useMemo(() => {
+    const m = new Map();
+    for (const o of outcomes) m.set(o.id, o);
+    return m;
+  }, [outcomes]);
+
+  const getStoreName = (id) => storeById.get(id)?.name || 'Unknown Store';
+  const getOutcomeName = (id) => outcomeById.get(parseInt(id))?.name || 'Status';
 
   const isOverdue = (date, resolved) => {
     if (!date || resolved) return false;
@@ -113,15 +131,16 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
   };
 
   const filteredLog = useMemo(() => {
-    const q = logSearchTerm.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
+    const statusId = logStatusFilter ? parseInt(logStatusFilter) : null;
     return activities.filter(act => {
-      const storeName = (stores.find(s => s.id === act.store_id)?.name || 'Unknown Store').toLowerCase();
+      if (statusId !== null && act.outcome_id !== statusId) return false;
+      if (!q) return true;
+      const storeName = (storeById.get(act.store_id)?.name || 'Unknown Store').toLowerCase();
       const notes = (act.notes || '').toLowerCase();
-      const matchesSearch = storeName.includes(q) || notes.includes(q);
-      const matchesStatus = !logStatusFilter || act.outcome_id === parseInt(logStatusFilter);
-      return matchesSearch && matchesStatus;
+      return storeName.includes(q) || notes.includes(q);
     });
-  }, [activities, stores, logSearchTerm, logStatusFilter]);
+  }, [activities, storeById, debouncedSearch, logStatusFilter]);
 
   const totalPages = Math.ceil(filteredLog.length / PAGE_SIZE);
   const pagedLog = filteredLog.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
