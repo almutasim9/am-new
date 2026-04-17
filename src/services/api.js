@@ -80,9 +80,20 @@ export const storeService = {
   }
 };
 
+// Keep resolved activity in the working set for 180 days. Anything older
+// is still in the DB (and in the Recycle Bin / archives) but won't be
+// hydrated into the UI — prevents linear growth of the initial payload.
+const ACTIVITY_WINDOW_DAYS = 180;
+
 export const activityService = {
   async getAll() {
-    const { data, error } = await supabase.from('calls').select('*').order('created_at', { ascending: false });
+    const cutoff = new Date(Date.now() - ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Load: recent rows OR any still-unresolved follow-up, regardless of age.
+    const { data, error } = await supabase
+      .from('calls')
+      .select('*')
+      .or(`created_at.gte.${cutoff},is_resolved.eq.false`)
+      .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
   },
