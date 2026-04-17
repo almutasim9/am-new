@@ -45,43 +45,62 @@ const Stats = ({ calls, outcomes, stores }) => {
     });
   }, [calls, activeFilters]);
 
-  const outcomeData = React.useMemo(() =>
-    outcomes.map(outcome => ({
-      name: outcome.name,
-      value: filteredCalls.filter(c => c.outcome_id === outcome.id).length
-    })).filter(d => d.value > 0),
-  [filteredCalls, outcomes]);
+  // Single pass over filteredCalls feeds outcome counts, resolved/pending
+  // split, contact-type breakdown, and the "any contact_type set?" flag —
+  // instead of (outcomes.length + 6) independent scans.
+  const { outcomeData, statusData, contactTypeData } = React.useMemo(() => {
+    const outcomeCounts = new Map();
+    const typeCounts = { call: 0, visit: 0, whatsapp: 0, online: 0 };
+    let completed = 0;
+    let anyContactType = false;
+    for (const c of filteredCalls) {
+      outcomeCounts.set(c.outcome_id, (outcomeCounts.get(c.outcome_id) || 0) + 1);
+      if (c.is_resolved) completed++;
+      if (c.contact_type) anyContactType = true;
+      const t = c.contact_type || 'call';
+      if (typeCounts[t] !== undefined) typeCounts[t]++;
+    }
 
-  const statusData = React.useMemo(() => [
-    { name: 'Completed', value: filteredCalls.filter(c => c.is_resolved).length },
-    { name: 'Pending',   value: filteredCalls.filter(c => !c.is_resolved).length },
-  ], [filteredCalls]);
+    const outcomeData = outcomes
+      .map(o => ({ name: o.name, value: outcomeCounts.get(o.id) || 0 }))
+      .filter(d => d.value > 0);
 
-  const zoneData = React.useMemo(() => {
-    const zones = [...new Set(stores.map(s => s.zone).filter(Boolean))];
-    return zones.map(zone => ({ name: zone, value: stores.filter(s => s.zone === zone).length }));
-  }, [stores]);
+    const statusData = [
+      { name: 'Completed', value: completed },
+      { name: 'Pending',   value: filteredCalls.length - completed },
+    ];
 
-  const categoryData = React.useMemo(() => {
-    const categories = [...new Set(stores.map(s => s.category).filter(Boolean))];
-    return categories.map(cat => ({ name: cat, value: stores.filter(s => s.category === cat).length }));
-  }, [stores]);
-
-  const contactTypeData = React.useMemo(() => {
-    const types = [
+    const typeMeta = [
       { value: 'call',     label: '📞 مكالمة',  color: '#4f46e5' },
       { value: 'visit',    label: '🚗 زيارة',   color: '#10b981' },
       { value: 'whatsapp', label: '💬 واتساب',  color: '#22c55e' },
       { value: 'online',   label: '🌐 أونلاين', color: '#0ea5e9' },
     ];
-    const hasAny = filteredCalls.some(c => c.contact_type);
-    if (!hasAny) return [];
-    return types.map(t => ({
-      name: t.label,
-      value: filteredCalls.filter(c => (c.contact_type || 'call') === t.value).length,
-      color: t.color
-    })).filter(d => d.value > 0);
-  }, [filteredCalls]);
+    const contactTypeData = anyContactType
+      ? typeMeta.map(t => ({ name: t.label, value: typeCounts[t.value], color: t.color })).filter(d => d.value > 0)
+      : [];
+
+    return { outcomeData, statusData, contactTypeData };
+  }, [filteredCalls, outcomes]);
+
+  // Zones and categories group stores once instead of (unique × stores.length).
+  const zoneData = React.useMemo(() => {
+    const counts = new Map();
+    for (const s of stores) {
+      if (!s.zone) continue;
+      counts.set(s.zone, (counts.get(s.zone) || 0) + 1);
+    }
+    return Array.from(counts, ([name, value]) => ({ name, value }));
+  }, [stores]);
+
+  const categoryData = React.useMemo(() => {
+    const counts = new Map();
+    for (const s of stores) {
+      if (!s.category) continue;
+      counts.set(s.category, (counts.get(s.category) || 0) + 1);
+    }
+    return Array.from(counts, ([name, value]) => ({ name, value }));
+  }, [stores]);
 
   return (
     <div className="section-container">
