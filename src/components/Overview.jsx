@@ -7,7 +7,7 @@ import {
 import { motion } from 'framer-motion';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  isWithinInterval, startOfDay, endOfDay, eachDayOfInterval,
+  startOfDay, endOfDay, eachDayOfInterval,
   differenceInDays, format
 } from 'date-fns';
 import { getOverdueActivities } from '../services/notificationService';
@@ -88,15 +88,34 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     [stats]
   );
 
+  // Build once; reused by recent-activities render and ghost-store detection.
+  const storeById = useMemo(() => {
+    const m = new Map();
+    for (const s of stores) m.set(s.id, s);
+    return m;
+  }, [stores]);
+
+  // Most-recent activity timestamp per store, in one pass over activities.
+  // Replaces the O(stores × activities) nested filter in ghostStores.
+  const latestActivityByStore = useMemo(() => {
+    const m = new Map();
+    for (const a of activities) {
+      const t = new Date(a.created_at).getTime();
+      const prev = m.get(a.store_id);
+      if (prev === undefined || t > prev) m.set(a.store_id, t);
+    }
+    return m;
+  }, [activities]);
+
   const recentActivities = useMemo(() =>
     [...activities]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 5)
       .map(a => ({
         ...a,
-        storeName: stores.find(s => s.id === a.store_id)?.name || 'Unknown'
+        storeName: storeById.get(a.store_id)?.name || 'Unknown'
       })),
-    [activities, stores]
+    [activities, storeById]
   );
 
   const quickActions = [
@@ -111,67 +130,63 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
+    const startMs = startOfDay(monthStart).getTime();
+    const endMs = endOfDay(monthEnd).getTime();
 
-    const monthActivities = activities.filter(a => {
-      try {
-        return isWithinInterval(new Date(a.created_at), { start: startOfDay(monthStart), end: endOfDay(monthEnd) });
-      } catch { return false; }
-    });
+    // Single pass: month filter + resolved + unique stores + outcome counts + type breakdown.
+    let total = 0;
+    let resolved = 0;
+    const uniqueStoresSet = new Set();
+    const outcomeCounts = {};
+    const byType = { call: 0, visit: 0, whatsapp: 0, online: 0 };
 
-    const uniqueStores = new Set(monthActivities.map(a => a.store_id)).size;
-    const resolved = monthActivities.filter(a => a.is_resolved).length;
-    const completionPct = monthActivities.length > 0 ? Math.round((resolved / monthActivities.length) * 100) : 0;
+    for (const a of activities) {
+      const t = new Date(a.created_at).getTime();
+      if (Number.isNaN(t) || t < startMs || t > endMs) continue;
+      total++;
+      if (a.is_resolved) resolved++;
+      uniqueStoresSet.add(a.store_id);
+      outcomeCounts[a.outcome_id] = (outcomeCounts[a.outcome_id] || 0) + 1;
+      const type = a.contact_type || 'call';
+      if (byType[type] !== undefined) byType[type]++;
+    }
+
+    const completionPct = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
     // Work days passed this month (Sun–Thu)
     const allDays = eachDayOfInterval({ start: monthStart, end: now });
     const workDaysPassed = allDays.filter(d => { const day = d.getDay(); return day >= 0 && day <= 4; }).length;
-    const avgPerDay = workDaysPassed > 0 ? (monthActivities.length / workDaysPassed).toFixed(1) : '0';
+    const avgPerDay = workDaysPassed > 0 ? (total / workDaysPassed).toFixed(1) : '0';
 
-    // Top outcome
-    const outcomeCounts = monthActivities.reduce((acc, a) => {
-      acc[a.outcome_id] = (acc[a.outcome_id] || 0) + 1;
-      return acc;
-    }, {});
-    const topOutcomeId = Object.entries(outcomeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    let topOutcomeId;
+    let topCount = -1;
+    for (const [id, count] of Object.entries(outcomeCounts)) {
+      if (count > topCount) { topCount = count; topOutcomeId = id; }
+    }
 
-    // Contact type breakdown
-    const byType = {
-      call:     monthActivities.filter(a => !a.contact_type || a.contact_type === 'call').length,
-      visit:    monthActivities.filter(a => a.contact_type === 'visit').length,
-      whatsapp: monthActivities.filter(a => a.contact_type === 'whatsapp').length,
-      online:   monthActivities.filter(a => a.contact_type === 'online').length,
-    };
-
-    return { total: monthActivities.length, uniqueStores, resolved, completionPct, avgPerDay, topOutcomeId, byType, workDaysPassed };
+    return { total, uniqueStores: uniqueStoresSet.size, resolved, completionPct, avgPerDay, topOutcomeId, byType, workDaysPassed };
   }, [activities]);
 
   // ── Ghost stores: active stores with no contact in 7+ days ─────────────────
   const ghostStores = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
+    const now = new Date();
+    const cutoffMs = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+    const result = [];
 
-    return stores
-      .filter(s => !s.deleted_at && s.is_active)
-      .filter(store => {
-        const last = activities
-          .filter(a => a.store_id === store.id)
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        if (!last) return true;
-        return new Date(last.created_at) < cutoff;
-      })
-      .map(store => {
-        const last = activities
-          .filter(a => a.store_id === store.id)
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        const daysSince = last ? differenceInDays(new Date(), new Date(last.created_at)) : null;
-        return { ...store, daysSince };
-      })
-      .sort((a, b) => {
-        if (a.daysSince === null) return -1;
-        if (b.daysSince === null) return 1;
-        return b.daysSince - a.daysSince;
-      });
-  }, [stores, activities]);
+    for (const s of stores) {
+      if (s.deleted_at || !s.is_active) continue;
+      const lastMs = latestActivityByStore.get(s.id);
+      if (lastMs !== undefined && lastMs >= cutoffMs) continue;
+      const daysSince = lastMs !== undefined ? differenceInDays(now, new Date(lastMs)) : null;
+      result.push({ ...s, daysSince });
+    }
+
+    return result.sort((a, b) => {
+      if (a.daysSince === null) return -1;
+      if (b.daysSince === null) return 1;
+      return b.daysSince - a.daysSince;
+    });
+  }, [stores, latestActivityByStore]);
 
   // ── Weekly PDF Report ───────────────────────────────────────────────────────
   const handlePrintWeeklyReport = () => {
@@ -179,29 +194,31 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     const weekStart = startOfWeek(now, { weekStartsOn: 0 });
     const weekEnd   = endOfWeek(now,   { weekStartsOn: 0 });
 
-    const weekActs = activities.filter(a => {
-      try {
-        return isWithinInterval(new Date(a.created_at), {
-          start: startOfDay(weekStart), end: endOfDay(weekEnd)
-        });
-      } catch { return false; }
-    });
+    const startMs = startOfDay(weekStart).getTime();
+    const endMs = endOfDay(weekEnd).getTime();
 
-    const weekStores   = new Set(weekActs.map(a => a.store_id)).size;
-    const weekResolved = weekActs.filter(a => a.is_resolved).length;
-    const weekPct      = weekActs.length > 0 ? Math.round((weekResolved / weekActs.length) * 100) : 0;
-    const byType = {
-      call:     weekActs.filter(a => !a.contact_type || a.contact_type === 'call').length,
-      visit:    weekActs.filter(a => a.contact_type === 'visit').length,
-      whatsapp: weekActs.filter(a => a.contact_type === 'whatsapp').length,
-      online:   weekActs.filter(a => a.contact_type === 'online').length,
-    };
-
+    let weekTotal = 0;
+    let weekResolved = 0;
+    const uniqueStores = new Set();
+    const byType = { call: 0, visit: 0, whatsapp: 0, online: 0 };
     const storeCounts = {};
-    weekActs.forEach(a => { storeCounts[a.store_id] = (storeCounts[a.store_id] || 0) + 1; });
+
+    for (const a of activities) {
+      const t = new Date(a.created_at).getTime();
+      if (Number.isNaN(t) || t < startMs || t > endMs) continue;
+      weekTotal++;
+      if (a.is_resolved) weekResolved++;
+      uniqueStores.add(a.store_id);
+      storeCounts[a.store_id] = (storeCounts[a.store_id] || 0) + 1;
+      const type = a.contact_type || 'call';
+      if (byType[type] !== undefined) byType[type]++;
+    }
+
+    const weekStores = uniqueStores.size;
+    const weekPct = weekTotal > 0 ? Math.round((weekResolved / weekTotal) * 100) : 0;
     const topStores = Object.entries(storeCounts)
       .sort((a, b) => b[1] - a[1]).slice(0, 5)
-      .map(([id, count]) => ({ name: stores.find(s => s.id === id)?.name || id, count }));
+      .map(([id, count]) => ({ name: storeById.get(id)?.name || id, count }));
 
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
     <title>التقرير الأسبوعي</title>
@@ -233,7 +250,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
     </div>
     <h2>ملخص الأسبوع</h2>
     <div class="grid4">
-      <div class="box"><div class="val">${weekActs.length}</div><div class="lbl">إجمالي الأنشطة</div></div>
+      <div class="box"><div class="val">${weekTotal}</div><div class="lbl">إجمالي الأنشطة</div></div>
       <div class="box"><div class="val">${weekStores}</div><div class="lbl">متاجر مغطاة</div></div>
       <div class="box"><div class="val">${weekResolved}</div><div class="lbl">مهام مكتملة</div></div>
       <div class="box"><div class="val">${weekPct}%</div><div class="lbl">نسبة الإنجاز</div></div>
