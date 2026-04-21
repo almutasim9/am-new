@@ -11,17 +11,18 @@ import {
   differenceInDays, format
 } from 'date-fns';
 import { getOverdueActivities } from '../services/notificationService';
+import { getCommercialCycle } from '../utils/commercialCycle';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const getGreeting = () => {
   const h = new Date().getHours();
-  if (h < 12) return 'صباح الخير';
-  if (h < 17) return 'مساء الخير';
-  return 'مساء النور';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 };
 
 const formatDate = () =>
-  new Date().toLocaleDateString('ar-SA', {
+  new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
@@ -77,15 +78,15 @@ const StatCard = ({ icon: Icon, label, value, color, pct, delay }) => (
 );
 
 // ── main ──────────────────────────────────────────────────────────────────────
-const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
+const Overview = ({ stats, cycleStats, activities = [], stores = [], onNavigate }) => {
   const overdueActivities = getOverdueActivities(activities, stores);
   const [ghostExpanded, setGhostExpanded] = useState(false);
 
   const completionRate = useMemo(() =>
-    stats.totalActivities > 0
-      ? Math.round((stats.completedTasks / stats.totalActivities) * 100)
+    cycleStats.total > 0
+      ? Math.round((cycleStats.completed / cycleStats.total) * 100)
       : 0,
-    [stats]
+    [cycleStats]
   );
 
   // Build once; reused by recent-activities render and ghost-store detection.
@@ -119,21 +120,18 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
   );
 
   const quickActions = [
-    { label: 'إضافة نشاط',      icon: PhoneCall,  tab: 'activities', color: 'var(--primary-color)' },
-    { label: 'عرض المتاجر',     icon: Users,       tab: 'stores',     color: 'var(--accent-color)'  },
-    { label: 'تقارير الأداء',   icon: TrendingUp,  tab: 'stats',      color: '#10b981'              },
-    { label: 'الهدف الأسبوعي',  icon: Target,      tab: 'target',     color: '#f59e0b'              },
+    { label: 'Add Activity',     icon: PhoneCall,  tab: 'activities', color: 'var(--primary-color)' },
+    { label: 'View Stores',      icon: Users,       tab: 'stores',     color: 'var(--accent-color)'  },
+    { label: 'Performance Stats',icon: TrendingUp,  tab: 'stats',      color: '#10b981'              },
+    { label: 'Weekly Goal',      icon: Target,      tab: 'target',     color: '#f59e0b'              },
   ];
 
-  // ── Monthly self-report ───────────────────────────────────────────────────
-  const monthlyReport = useMemo(() => {
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const startMs = startOfDay(monthStart).getTime();
-    const endMs = endOfDay(monthEnd).getTime();
+  // ── Commercial Cycle Report ───────────────────────────────────────────────
+  const cycleReport = useMemo(() => {
+    const { start, end } = getCommercialCycle(new Date());
+    const startMs = start.getTime();
+    const endMs = end.getTime();
 
-    // Single pass: month filter + resolved + unique stores + outcome counts + type breakdown.
     let total = 0;
     let resolved = 0;
     const uniqueStoresSet = new Set();
@@ -153,8 +151,8 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
 
     const completionPct = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
-    // Work days passed this month (Sun–Thu)
-    const allDays = eachDayOfInterval({ start: monthStart, end: now });
+    // Work days passed this cycle (Sun–Thu)
+    const allDays = eachDayOfInterval({ start, end: new Date() < end ? new Date() : end });
     const workDaysPassed = allDays.filter(d => { const day = d.getDay(); return day >= 0 && day <= 4; }).length;
     const avgPerDay = workDaysPassed > 0 ? (total / workDaysPassed).toFixed(1) : '0';
 
@@ -220,11 +218,11 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       .sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([id, count]) => ({ name: storeById.get(id)?.name || id, count }));
 
-    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
-    <title>التقرير الأسبوعي</title>
+    const html = `<!DOCTYPE html><html dir="ltr" lang="en"><head><meta charset="UTF-8">
+    <title>Weekly Report</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:40px;direction:rtl;background:#fff}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:40px;direction:ltr;background:#fff}
       .header{text-align:center;margin-bottom:36px;padding-bottom:20px;border-bottom:2px solid #e2e8f0}
       .header h1{font-size:22px;color:#4f46e5;margin-bottom:6px}
       .header p{color:#64748b;font-size:13px}
@@ -245,26 +243,26 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       @media print{body{padding:20px}}
     </style></head><body>
     <div class="header">
-      <h1>📊 التقرير الأسبوعي</h1>
+      <h1>📊 Weekly Report</h1>
       <p>${format(weekStart,'yyyy/MM/dd')} — ${format(weekEnd,'yyyy/MM/dd')}</p>
     </div>
-    <h2>ملخص الأسبوع</h2>
+    <h2>Weekly Summary</h2>
     <div class="grid4">
-      <div class="box"><div class="val">${weekTotal}</div><div class="lbl">إجمالي الأنشطة</div></div>
-      <div class="box"><div class="val">${weekStores}</div><div class="lbl">متاجر مغطاة</div></div>
-      <div class="box"><div class="val">${weekResolved}</div><div class="lbl">مهام مكتملة</div></div>
-      <div class="box"><div class="val">${weekPct}%</div><div class="lbl">نسبة الإنجاز</div></div>
+      <div class="box"><div class="val">${weekTotal}</div><div class="lbl">Total Activities</div></div>
+      <div class="box"><div class="val">${weekStores}</div><div class="lbl">Covered Stores</div></div>
+      <div class="box"><div class="val">${weekResolved}</div><div class="lbl">Completed Tasks</div></div>
+      <div class="box"><div class="val">${weekPct}%</div><div class="lbl">Completion Rate</div></div>
     </div>
-    <h2>نوع التواصل</h2>
+    <h2>Contact Type</h2>
     <div class="grid2">
-      <div class="type-box"><div class="emoji">📞</div><div><div class="cnt">${byType.call}</div><div class="nm">مكالمة</div></div></div>
-      <div class="type-box"><div class="emoji">🚗</div><div><div class="cnt">${byType.visit}</div><div class="nm">زيارة</div></div></div>
-      <div class="type-box"><div class="emoji">💬</div><div><div class="cnt">${byType.whatsapp}</div><div class="nm">واتساب</div></div></div>
-      <div class="type-box"><div class="emoji">🌐</div><div><div class="cnt">${byType.online}</div><div class="nm">أونلاين</div></div></div>
+      <div class="type-box"><div class="emoji">📞</div><div><div class="cnt">${byType.call}</div><div class="nm">Call</div></div></div>
+      <div class="type-box"><div class="emoji">🚗</div><div><div class="cnt">${byType.visit}</div><div class="nm">Visit</div></div></div>
+      <div class="type-box"><div class="emoji">💬</div><div><div class="cnt">${byType.whatsapp}</div><div class="nm">WhatsApp</div></div></div>
+      <div class="type-box"><div class="emoji">🌐</div><div><div class="cnt">${byType.online}</div><div class="nm">Online</div></div></div>
     </div>
-    ${topStores.length > 0 ? `<h2>أكثر المتاجر نشاطاً</h2>${topStores.map(s=>`
-      <div class="store-row"><div class="nm">${s.name}</div><div class="badge">${s.count} نشاط</div></div>`).join('')}` : ''}
-    <div class="footer">Registry — ${new Date().toLocaleString('ar-SA')}</div>
+    ${topStores.length > 0 ? `<h2>Most Active Stores</h2>${topStores.map(s=>`
+      <div class="store-row"><div class="nm">${s.name}</div><div class="badge">${s.count} Activities</div></div>`).join('')}` : ''}
+    <div class="footer">Registry — ${new Date().toLocaleString()}</div>
     </body></html>`;
 
     const win = window.open('', '_blank', 'width=860,height=700');
@@ -292,9 +290,9 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
           </p>
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
             {[
-              { key: 'N', label: 'نشاط جديد' },
-              { key: 'Ctrl+K', label: 'بحث' },
-              { key: 'Esc', label: 'إغلاق' },
+              { key: 'N', label: 'New Activity' },
+              { key: 'Ctrl+K', label: 'Search' },
+              { key: 'Esc', label: 'Close' },
             ].map(sc => (
               <span key={sc.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600 }}>
                 <kbd style={{ background: 'var(--surface-hover)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '1px 5px', fontFamily: 'monospace', fontSize: '0.65rem' }}>{sc.key}</kbd>
@@ -316,7 +314,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
             onClick={() => onNavigate?.('activities')}
           >
             <AlertCircle size={16} />
-            {overdueActivities.length} مهام متأخرة تحتاج متابعة
+            {overdueActivities.length} overdue tasks need follow-up
           </motion.div>
         )}
       </motion.div>
@@ -343,7 +341,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <BellOff size={17} color="#f59e0b" />
               <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#b45309' }}>
-                {ghostStores.length} متجر بدون تواصل منذ +7 أيام
+                {ghostStores.length} stores without contact for +7 days
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -379,13 +377,13 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                     background: store.daysSince === null || store.daysSince >= 14 ? 'rgba(220,38,38,0.08)' : 'rgba(245,158,11,0.1)',
                     padding: '3px 10px', borderRadius: '999px',
                   }}>
-                    {store.daysSince === null ? 'لم يتم التواصل أبداً' : `${store.daysSince} يوم`}
+                    {store.daysSince === null ? 'Never contacted' : `${store.daysSince} days`}
                   </span>
                 </div>
               ))}
               {ghostStores.length > 10 && (
                 <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#b45309', fontWeight: 600, padding: '4px' }}>
-                  + {ghostStores.length - 10} متجر آخر
+                  + {ghostStores.length - 10} more stores
                 </div>
               )}
               <button
@@ -393,7 +391,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                 style={{ marginTop: '4px', width: '100%', justifyContent: 'center', borderColor: 'rgba(245,158,11,0.4)', color: '#b45309' }}
                 onClick={() => onNavigate?.('stores')}
               >
-                عرض جميع المتاجر <ArrowRight size={14} />
+                View all stores <ArrowRight size={14} />
               </button>
             </div>
           )}
@@ -404,36 +402,36 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       <div className="stats-grid">
         <StatCard
           icon={Users}
-          label="المتاجر النشطة"
+          label="Active Stores"
           value={stats.totalStores}
           color="var(--primary-color)"
           delay={0.05}
         />
         <StatCard
           icon={Store}
-          label="المتاجر الغير نشطة"
+          label="Inactive Stores"
           value={stats.inactiveStores}
           color="var(--text-dim)"
           delay={0.07}
         />
         <StatCard
           icon={Activity}
-          label="إجمالي الأنشطة"
-          value={stats.totalActivities}
+          label="Activities (Cycle)"
+          value={cycleStats.total}
           color="var(--accent-color)"
           delay={0.1}
         />
         <StatCard
           icon={Clock}
-          label="متابعات معلّقة"
-          value={stats.pendingTasks}
+          label="Pending (Cycle)"
+          value={cycleStats.pending}
           color="#f59e0b"
           delay={0.15}
         />
         <StatCard
           icon={CheckCircle}
-          label="مهام مكتملة"
-          value={stats.completedTasks}
+          label="Resolved (Cycle)"
+          value={cycleStats.completed}
           color="var(--success)"
           pct={completionRate}
           delay={0.2}
@@ -443,8 +441,8 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
       {/* ── Quick Actions ── */}
       <motion.div {...fadeUp(0.25)}>
         <p className="stat-label" style={{ marginBottom: '0.75rem', fontWeight: 600 }}>
-          <Zap size={14} style={{ display: 'inline', marginLeft: '4px' }} />
-          إجراءات سريعة
+          <Zap size={14} style={{ display: 'inline', marginRight: '4px' }} />
+          Quick Actions
         </p>
         <div className="quick-actions-grid">
           {quickActions.map(({ label, icon: Icon, tab, color }) => (
@@ -487,11 +485,11 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertCircle size={18} color="var(--danger)" />
               <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>
-                {overdueActivities.length > 0 ? 'تذكيرات اليوم' : 'آخر الأنشطة'}
+                {overdueActivities.length > 0 ? "Today's Reminders" : "Recent Activities"}
               </h3>
             </div>
             {overdueActivities.length > 0 && (
-              <span className="badge badge-danger">{overdueActivities.length} عاجل</span>
+              <span className="badge badge-danger">{overdueActivities.length} Urgent</span>
             )}
           </div>
 
@@ -500,7 +498,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
               recentActivities.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
                   <Star size={32} style={{ marginBottom: '0.5rem', opacity: 0.3 }} />
-                  <p style={{ fontSize: '0.875rem' }}>لا توجد أنشطة بعد</p>
+                  <p style={{ fontSize: '0.875rem' }}>No activities yet</p>
                 </div>
               ) : (
                 <>
@@ -512,7 +510,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                   }}>
                     <CheckCircle size={16} color="var(--success)" />
                     <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>
-                      لا توجد مهام متأخرة — عمل ممتاز!
+                      No overdue tasks — great work!
                     </span>
                   </div>
                   {recentActivities.map((a, i) => (
@@ -588,7 +586,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
               style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
               onClick={() => onNavigate?.('activities')}
             >
-              عرض جميع الأنشطة <ArrowRight size={15} />
+              View all activities <ArrowRight size={15} />
             </motion.button>
           )}
         </motion.div>
@@ -597,7 +595,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
         <motion.div className="glass-card" style={{ padding: '1.75rem' }} {...fadeUp(0.35)}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <TrendingUp size={18} color="var(--primary-color)" />
-            إحصائيات سريعة
+            Quick Insights
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -609,7 +607,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  نسبة الإنجاز
+                  Completion Rate
                 </span>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--success)' }}>
                   {completionRate}%
@@ -636,7 +634,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                   {overdueActivities.length}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 500, marginTop: '2px' }}>
-                  متأخرة
+                  Overdue
                 </div>
               </div>
               <div style={{
@@ -648,7 +646,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                   {stats.pendingTasks}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 500, marginTop: '2px' }}>
-                  معلّقة
+                  Pending
                 </div>
               </div>
               <div style={{
@@ -660,7 +658,7 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
                   {stats.completedTasks}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 500, marginTop: '2px' }}>
-                  منجزة
+                  Resolved
                 </div>
               </div>
             </div>
@@ -671,18 +669,18 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
               style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
               onClick={() => onNavigate?.('stats')}
             >
-              التقرير الكامل <ArrowRight size={15} />
+              Full Report <ArrowRight size={15} />
             </motion.button>
           </div>
         </motion.div>
 
-      {/* ── Monthly AM Self-Report ── */}
-      {monthlyReport.total > 0 && (
+      {/* ── Commercial Cycle Report ── */}
+      {cycleReport.total > 0 && (
         <motion.div className="glass-card" style={{ padding: '1.75rem', marginTop: '1.5rem' }} {...fadeUp(0.4)}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Calendar size={18} color="var(--primary-color)" />
-              تقريرك الشهري — {new Date().toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })}
+              Cycle Performance — {getCommercialCycle(new Date()).cycleMonth}
             </h3>
             <button
               onClick={handlePrintWeeklyReport}
@@ -695,17 +693,17 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
               }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary-color)'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
-              title="طباعة / تصدير التقرير الأسبوعي"
+              title="Print / Export Weekly Report"
             >
-              <Printer size={14} /> طباعة أسبوعي
+              <Printer size={14} /> Print Weekly
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
             {[
-              { label: 'إجمالي النشاطات', value: monthlyReport.total, color: 'var(--primary-color)' },
-              { label: 'متاجر تم تغطيتها', value: monthlyReport.uniqueStores, color: 'var(--accent-color)' },
-              { label: 'نسبة الإنجاز', value: `${monthlyReport.completionPct}%`, color: 'var(--success)' },
-              { label: 'معدل يومي', value: monthlyReport.avgPerDay, color: '#f59e0b' },
+              { label: 'Cycle Activities', value: cycleReport.total, color: 'var(--primary-color)' },
+              { label: 'Stores Covered', value: cycleReport.uniqueStores, color: 'var(--accent-color)' },
+              { label: 'Cycle Completion', value: `${cycleReport.completionPct}%`, color: 'var(--success)' },
+              { label: 'Daily Average', value: cycleReport.avgPerDay, color: '#f59e0b' },
             ].map(item => (
               <div key={item.label} style={{ padding: '1rem', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: item.color }}>{item.value}</div>
@@ -713,13 +711,13 @@ const Overview = ({ stats, activities = [], stores = [], onNavigate }) => {
               </div>
             ))}
           </div>
-          {(monthlyReport.byType.call > 0 || monthlyReport.byType.visit > 0 || monthlyReport.byType.whatsapp > 0 || monthlyReport.byType.online > 0) && (
+          {(cycleReport.byType.call > 0 || cycleReport.byType.visit > 0 || cycleReport.byType.whatsapp > 0 || cycleReport.byType.online > 0) && (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '1rem' }}>
               {[
-                { label: `📞 ${monthlyReport.byType.call} مكالمة`, show: monthlyReport.byType.call > 0 },
-                { label: `🚗 ${monthlyReport.byType.visit} زيارة`, show: monthlyReport.byType.visit > 0 },
-                { label: `💬 ${monthlyReport.byType.whatsapp} واتساب`, show: monthlyReport.byType.whatsapp > 0 },
-                { label: `🌐 ${monthlyReport.byType.online} أونلاين`, show: monthlyReport.byType.online > 0 },
+                { label: `📞 ${cycleReport.byType.call} Call`, show: cycleReport.byType.call > 0 },
+                { label: `🚗 ${cycleReport.byType.visit} Visit`, show: cycleReport.byType.visit > 0 },
+                { label: `💬 ${cycleReport.byType.whatsapp} WhatsApp`, show: cycleReport.byType.whatsapp > 0 },
+                { label: `🌐 ${cycleReport.byType.online} Online`, show: cycleReport.byType.online > 0 },
               ].filter(t => t.show).map(t => (
                 <span key={t.label} style={{ padding: '4px 12px', borderRadius: '20px', background: 'var(--primary-light)', color: 'var(--primary-color)', fontSize: '0.8rem', fontWeight: 600 }}>
                   {t.label}

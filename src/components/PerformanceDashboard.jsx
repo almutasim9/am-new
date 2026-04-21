@@ -117,9 +117,9 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
       const unmatchedMap = {}; // key: storeIdRaw or storeNameRaw → { id, name }
 
       const sheetTypes = [
-        { key: 'monthly', searchFor: 'Monthly Calendar', label: 'شهري' },
-        { key: 'commercial', searchFor: 'Commercial Calendar', label: 'تجاري' },
-        { key: 'yesterday', searchFor: 'Yesterday', label: 'البارحة' }
+        { key: 'monthly', searchFor: 'Monthly Calendar', label: 'Monthly' },
+        { key: 'commercial', searchFor: 'Commercial Calendar', label: 'Commercial' },
+        { key: 'yesterday', searchFor: 'Yesterday', label: 'Yesterday' }
       ];
       
       let sheetsFound = [];
@@ -257,17 +257,17 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
 
       if (anyMatched > 0) {
         await storeService.bulkUpdateMetrics(updatesToUpload);
-        notify('success', `تم تحديث ومسح البيانات القديمة لجميع المتاجر. المتاجر المطابقة: ${anyMatched} من الشيتات (${sheetsFound.join('، ')})`);
+        notify('success', `Data updated and cleared for all stores. Matched stores: ${anyMatched} from sheets (${sheetsFound.join(', ')})`);
         if (onFetchInitialData) {
           await onFetchInitialData();
         }
       } else {
-        notify('error', 'لم يتم مطابقة أي شيتات أو متاجر بطريقة صحيحة.');
+        notify('error', 'No sheets or stores matched correctly.');
       }
 
     } catch (err) {
       console.error(err);
-      notify('error', err.message || 'حدث خطأ أثناء معالجة الملف');
+      notify('error', err.message || 'An error occurred while processing the file');
     } finally {
       setIsProcessing(false);
       event.target.value = null; // reset input
@@ -279,9 +279,9 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
       <div className="section-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 className="gradient-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={28} color="var(--primary-color)" /> لوحة الأداء والمبيعات
+            <TrendingUp size={28} color="var(--primary-color)" /> Performance & Sales Dashboard
           </h2>
-          <p className="stat-label">تتبع مبيعات المتاجر، GMV، والطلبات بناءً على تقرير AM</p>
+          <p className="stat-label">Track store sales, GMV, and orders based on AM report</p>
         </div>
         
         {/* Upload Horizontal Action */}
@@ -305,23 +305,23 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                   transition: 'all 0.2s',
                 }}
               >
-                {tab === 'monthly' ? 'شهري' : tab === 'commercial' ? 'تجاري' : 'البارحة'}
+                {tab === 'monthly' ? 'Monthly' : tab === 'commercial' ? 'Commercial' : 'Yesterday'}
               </button>
             ))}
           </div>
 
           {reportStats && (
             <div style={{ display: 'flex', gap: '1rem', background: 'var(--surface-color)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>متجر نشط (تجاري): {reportStats.matched}</span>
-              <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>غير نشط: {reportStats.notFound}</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>Active (Commercial): {reportStats.matched}</span>
+              <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>Inactive: {reportStats.notFound}</span>
             </div>
           )}
           
           <label className="btn-primary" style={{ padding: '12px 24px', cursor: 'pointer', opacity: isProcessing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '12px', fontWeight: 700 }}>
             {isProcessing ? (
-              <><RefreshCw className="animate-spin" size={18} /> جاري المعالجة...</>
+              <><RefreshCw className="animate-spin" size={18} /> Processing...</>
             ) : (
-              <><Upload size={18} /> رفع تقرير AM (.xlsx)</>
+              <><Upload size={18} /> Upload AM Report (.xlsx)</>
             )}
             <input 
               type="file" 
@@ -346,16 +346,16 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
             <div>
               <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <AlertCircle size={18} color="#f59e0b" />
-                {unmatchedStores.length} متجر في الملف غير موجود في قاعدة البيانات
+                {unmatchedStores.length} stores in file not found in database
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                انسخ الـ ID وأضف المتجر من صفحة المتاجر
+                Copy the ID and add the store from the Stores page
               </div>
             </div>
             <button
               onClick={() => setUnmatchedStores([])}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '4px' }}
-              title="إغلاق"
+              title="Close"
             >
               ✕
             </button>
@@ -378,7 +378,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                     onClick={() => { navigator.clipboard.writeText(s.id); setCopiedId(s.id); setTimeout(() => setCopiedId(null), 2000); }}
                     style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer', background: copiedId === s.id ? 'var(--success)' : 'var(--primary-light)', color: copiedId === s.id ? 'white' : 'var(--primary-color)', fontWeight: 600, fontSize: '0.75rem', transition: 'all 0.2s' }}
                   >
-                    {copiedId === s.id ? '✓ تم النسخ' : 'نسخ ID'}
+                    {copiedId === s.id ? '✓ Copied' : 'Copy ID'}
                   </button>
                   {onAddStore && (
                     <button
@@ -394,7 +394,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                         fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s', whiteSpace: 'nowrap'
                       }}
                     >
-                      {quickAddStore?.name === s.name ? '✕ إلغاء' : '+ إضافة'}
+                      {quickAddStore?.name === s.name ? '✕ Cancel' : '+ Add'}
                     </button>
                   )}
                 </div>
@@ -404,10 +404,10 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                   <div style={{ padding: '12px', background: '#f0fdf4', borderTop: '1px solid #bbf7d0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
                       {[
-                        { key: 'zone',       placeholder: 'المنطقة (Zone) *' },
-                        { key: 'category',   placeholder: 'الفئة (Category)' },
-                        { key: 'owner_name', placeholder: 'اسم المالك (Owner)' },
-                        { key: 'phone',      placeholder: 'رقم الهاتف (Phone)' },
+                        { key: 'zone',       placeholder: 'Zone *' },
+                        { key: 'category',   placeholder: 'Category' },
+                        { key: 'owner_name', placeholder: 'Owner Name' },
+                        { key: 'phone',      placeholder: 'Phone Number' },
                       ].map(f => (
                         <input
                           key={f.key}
@@ -428,7 +428,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                         disabled={isAdding}
                         style={{ padding: '6px 18px', borderRadius: '8px', border: 'none', cursor: isAdding ? 'not-allowed' : 'pointer', background: 'var(--success)', color: 'white', fontWeight: 700, fontSize: '0.82rem', opacity: isAdding ? 0.7 : 1 }}
                       >
-                        {isAdding ? 'جاري الإضافة...' : '✓ إضافة الآن'}
+                        {isAdding ? 'Adding...' : '✓ Add Now'}
                       </button>
                     </div>
                   </div>
@@ -443,19 +443,19 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
         {/* Global Stats Card */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--success)' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}>إجمالي GMV (IQD)</p>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}>Total GMV (IQD)</p>
             <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)' }}>{totalGMV.toLocaleString()} IQD</h4>
           </div>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary-color)' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><ShoppingCart size={16} style={{ display: 'inline' }} /> إجمالي الطلبات</p>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><ShoppingCart size={16} style={{ display: 'inline' }} /> Total Orders</p>
             <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary-color)' }}>{totalOrders.toLocaleString()}</h4>
           </div>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #ef4444' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><TrendingUp size={16} style={{ display: 'inline' }} /> نسبة الخصم (Discount %)</p>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><TrendingUp size={16} style={{ display: 'inline' }} /> Discount %</p>
             <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>{discountRatio}%</h4>
           </div>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><Star size={16} style={{ display: 'inline' }} /> مجموع Highlights</p>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><Star size={16} style={{ display: 'inline' }} /> Total Highlights</p>
             <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b' }}>{totalHighlights.toLocaleString()}</h4>
           </div>
         </div>
@@ -464,9 +464,9 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
           <div className="glass-card" style={{ padding: '1.5rem', flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <BarChart3 size={20} color="var(--primary-color)" /> أفضل المتاجر أداءً
+                <BarChart3 size={20} color="var(--primary-color)" /> Top Performing Stores
                 {filteredPerfStores.length !== performingStores.length && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>({filteredPerfStores.length} من {performingStores.length})</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>({filteredPerfStores.length} of {performingStores.length})</span>
                 )}
               </h3>
               {/* Search */}
@@ -474,7 +474,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                 <Search size={15} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
                 <input
                   type="text"
-                  placeholder="بحث عن متجر..."
+                  placeholder="Search for store..."
                   value={perfSearch}
                   onChange={e => setPerfSearch(e.target.value)}
                   style={{
@@ -494,7 +494,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                   fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
                 }}
               >
-                <BarChart3 size={15} /> {compareMode ? 'إلغاء المقارنة' : 'مقارنة'}
+                <BarChart3 size={15} /> {compareMode ? 'Cancel Comparison' : 'Compare'}
               </button>
             </div>
 
@@ -507,9 +507,9 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
               const stB = getStats(storeB);
               const metrics = [
                 { label: 'GMV (IQD)', a: Number(stA.gmv || 0), b: Number(stB.gmv || 0), fmt: v => v.toLocaleString() },
-                { label: 'الطلبات', a: Number(stA.orders || 0), b: Number(stB.orders || 0), fmt: v => v.toLocaleString() },
-                { label: 'متوسط السلة', a: Number(stA.avg_cart || 0), b: Number(stB.avg_cart || 0), fmt: v => v.toLocaleString() },
-                { label: 'التقييم', a: Number(stA.ratings || 0), b: Number(stB.ratings || 0), fmt: v => v.toFixed(1) },
+                { label: 'Orders', a: Number(stA.orders || 0), b: Number(stB.orders || 0), fmt: v => v.toLocaleString() },
+                { label: 'Avg. Cart', a: Number(stA.avg_cart || 0), b: Number(stB.avg_cart || 0), fmt: v => v.toLocaleString() },
+                { label: 'Rating', a: Number(stA.ratings || 0), b: Number(stB.ratings || 0), fmt: v => v.toFixed(1) },
                 { label: 'MV %', a: Number(stA.mv_percent || 0), b: Number(stB.mv_percent || 0), fmt: v => formatPercent(v) },
                 { label: 'HL %', a: Number(stA.hl_percent || 0), b: Number(stB.hl_percent || 0), fmt: v => formatPercent(v) },
                 { label: 'Discount', a: Number(stA.discount_amount || 0), b: Number(stB.discount_amount || 0), fmt: v => v.toLocaleString(), lowerIsBetter: true },
@@ -518,7 +518,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                 <div style={{ marginBottom: '1.5rem', background: 'var(--surface-hover)', borderRadius: '14px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'var(--primary-color)', color: 'white', padding: '12px 16px', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center' }}>
                     <span style={{ textAlign: 'right' }}>{storeA.name}</span>
-                    <span>مقارنة</span>
+                    <span>Comparison</span>
                     <span style={{ textAlign: 'left' }}>{storeB.name}</span>
                   </div>
                   {metrics.map(m => {
@@ -537,13 +537,13 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
             })()}
             {compareMode && compareIds.length < 2 && (
               <div style={{ padding: '10px 14px', background: 'var(--primary-light)', borderRadius: '10px', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
-                اختر {compareIds.length === 0 ? 'متجرين' : 'متجر واحد آخر'} من الجدول للمقارنة
+                Select {compareIds.length === 0 ? 'two stores' : 'one more store'} from the table to compare
               </div>
             )}
 
             {performingStores.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-dim)' }}>
-                لا توجد بيانات مبيعات. قم برفع التقرير لعرض المتاجر.
+                No sales data found. Upload a report to view stores.
               </div>
             ) : (
               <div style={{ overflowX: 'auto', paddingBottom: '10px' }}>
@@ -551,17 +551,17 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                   <thead style={{ whiteSpace: 'nowrap' }}>
                     <tr style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {compareMode && <th style={{ padding: '8px 8px' }}></th>}
-                      <th style={{ padding: '8px 16px', position: 'sticky', right: 0, background: 'var(--surface-color, #fff)', zIndex: 1 }}>المتجر</th>
-                      <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>الطلبات</th>
+                      <th style={{ padding: '8px 16px', position: 'sticky', right: 0, background: 'var(--surface-color, #fff)', zIndex: 1 }}>Store</th>
+                      <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>Orders</th>
                       <th style={{ padding: '8px 16px' }}>GMV</th>
-                      <th style={{ padding: '8px 16px' }}>متوسط السلة</th>
+                      <th style={{ padding: '8px 16px' }}>Avg. Cart</th>
                       <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>MV %</th>
                       <th style={{ padding: '8px 16px' }}>MVH %</th>
                       <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>Highlights</th>
                       <th style={{ padding: '8px 16px' }}>HL %</th>
                       <th style={{ padding: '8px 16px' }}>New HL %</th>
                       <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>Discount</th>
-                      <th style={{ padding: '8px 16px' }}>التقييم</th>
+                      <th style={{ padding: '8px 16px' }}>Rating</th>
                       <th style={{ padding: '8px 16px', borderRight: '1px solid var(--border-color)' }}>Toters+ %</th>
                       <th style={{ padding: '8px 16px' }}>Orders %</th>
                     </tr>

@@ -7,20 +7,19 @@ import {
 } from 'date-fns';
 import { Calendar, Clock, Filter, ChevronDown, RefreshCw, Layers } from 'lucide-react';
 import { startOfBaghdadDay, endOfBaghdadDay } from '../utils/tz';
+import { getCommercialCycle } from '../utils/commercialCycle';
 
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
 
 const Stats = ({ calls, outcomes, stores }) => {
   const now = new Date();
   
-  // Set default: Sunday to Saturday (Standard Week)
-  const defaultStart = startOfWeek(now, { weekStartsOn: 0 });
-  const defaultEnd = endOfWeek(now, { weekStartsOn: 0 });
+  const cycle = React.useMemo(() => getCommercialCycle(now), []);
 
   const [filterForm, setFilterForm] = React.useState({
-    startDate: format(defaultStart, 'yyyy-MM-dd'),
-    endDate: format(defaultEnd, 'yyyy-MM-dd'),
-    period: 'week',
+    startDate: format(cycle.start, 'yyyy-MM-dd'),
+    endDate: format(cycle.end, 'yyyy-MM-dd'),
+    period: 'cycle',
     orderType: 'all'
   });
 
@@ -71,10 +70,10 @@ const Stats = ({ calls, outcomes, stores }) => {
     ];
 
     const typeMeta = [
-      { value: 'call',     label: '📞 مكالمة',  color: '#4f46e5' },
-      { value: 'visit',    label: '🚗 زيارة',   color: '#10b981' },
-      { value: 'whatsapp', label: '💬 واتساب',  color: '#22c55e' },
-      { value: 'online',   label: '🌐 أونلاين', color: '#0ea5e9' },
+      { value: 'call',     label: '📞 Call',     color: '#4f46e5' },
+      { value: 'visit',    label: '🚗 Visit',    color: '#10b981' },
+      { value: 'whatsapp', label: '💬 WhatsApp', color: '#22c55e' },
+      { value: 'online',   label: '🌐 Online',   color: '#0ea5e9' },
     ];
     const contactTypeData = anyContactType
       ? typeMeta.map(t => ({ name: t.label, value: typeCounts[t.value], color: t.color })).filter(d => d.value > 0)
@@ -150,6 +149,7 @@ const Stats = ({ calls, outcomes, stores }) => {
               <option value="day">daily</option>
               <option value="week">weekly</option>
               <option value="month">monthly</option>
+              <option value="cycle">commercial cycle (19th-18th)</option>
             </select>
             <ChevronDown size={14} className="select-arrow" />
           </div>
@@ -323,7 +323,7 @@ const Stats = ({ calls, outcomes, stores }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>نوع التواصل / Contact Type</h3>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>Contact Type</h3>
             <div className="stats-chart-inner">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

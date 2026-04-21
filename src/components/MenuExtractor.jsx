@@ -18,7 +18,7 @@ const fileToBase64 = (file) =>
 const exportToExcel = async (sections, fileName = 'menu.xlsx') => {
   const xlsxMod = await import('xlsx');
   const XLSX = xlsxMod.default ?? xlsxMod;
-  const rows = [['القسم', 'اسم الصنف', 'السعر', 'الوصف']];
+  const rows = [['Section', 'Item Name', 'Price', 'Description']];
   for (const sec of sections) {
     for (const item of sec.items) {
       rows.push([sec.section, item.name, item.price ?? '—', item.description ?? '']);
@@ -127,8 +127,8 @@ const MenuExtractor = () => {
   /* ── key management ── */
   const saveKey = () => {
     const k = keyInput.trim();
-    if (!k) { setError('أدخل المفتاح أولاً'); return; }
-    if (!k.startsWith('gsk_')) { setError('المفتاح يجب أن يبدأ بـ gsk_'); return; }
+    if (!k) { setError('Enter key first'); return; }
+    if (!k.startsWith('gsk_')) { setError('Key must start with gsk_'); return; }
     localStorage.setItem('mp_groq_key', k);
     setApiKey(k);
     setKeyInput('');
@@ -143,11 +143,11 @@ const MenuExtractor = () => {
   /* ── image handling ── */
   const handleFile = useCallback((file) => {
     if (!file?.type.startsWith('image/')) {
-      setError('الرجاء رفع صورة (JPG, PNG, WEBP)');
+      setError('Please upload an image (JPG, PNG, WEBP)');
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setError('حجم الصورة يجب أن لا يتجاوز 20MB');
+      setError('Image size must not exceed 20MB');
       return;
     }
     setError(null);
@@ -172,11 +172,11 @@ const MenuExtractor = () => {
       const b64    = await fileToBase64(imageFile);
       const result = await extractMenu(b64, imageFile.type, apiKey, selectedModel);
       if (!Array.isArray(result) || result.length === 0)
-        throw new Error('لم يُعثر على بيانات في الصورة — جرّب صورة أوضح');
+        throw new Error('No data found in image — try a clearer image');
       setSections(result);
       setCollapsed({});
     } catch (err) {
-      setError(err.message || 'حدث خطأ غير متوقع');
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsProcessing(false);
     }
@@ -412,27 +412,27 @@ const MenuExtractor = () => {
       {/* ── Page header ── */}
       <div className="me-header">
         <div>
-          <div className="me-title"><Utensils size={24} /> استخراج المنيو</div>
-          <div className="me-subtitle">ارفع صورة منيو وسيتم استخراج الأقسام والأصناف والأسعار بواسطة Groq AI — مجاني</div>
+          <div className="me-title"><Utensils size={24} /> Menu Extractor</div>
+          <div className="me-subtitle">Upload a menu image and sections, items, and prices will be extracted using Groq AI — Free</div>
         </div>
         {sections && (
           <button className="me-export-btn" onClick={() => exportToExcel(sections)}>
-            <Download size={15} /> تصدير Excel
+            <Download size={15} /> Export to Excel
           </button>
         )}
       </div>
 
       {/* ── API key card ── */}
       <div className="me-key-card">
-        <div className="me-key-section-label"><Key size={13} /> Groq API Key — مجاني</div>
+        <div className="me-key-section-label"><Key size={13} /> Groq API Key — Free</div>
         {isKeySet ? (
           <>
             <div className="me-key-set-row">
               <div className="me-key-status">
                 <CheckCircle2 size={16} />
-                المفتاح محفوظ — {apiKey.slice(0, 8)}••••••••
+                Key Saved — {apiKey.slice(0, 8)}••••••••
               </div>
-              <button className="me-key-change-btn" onClick={clearKey}>تغيير المفتاح</button>
+              <button className="me-key-change-btn" onClick={clearKey}>Change Key</button>
             </div>
             {/* Model selector */}
             <div className="me-model-row">
@@ -464,14 +464,14 @@ const MenuExtractor = () => {
               <button className="me-icon-btn" onClick={() => setShowKey(v => !v)}>
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              <button className="me-save-btn" onClick={saveKey}>حفظ</button>
+              <button className="me-save-btn" onClick={saveKey}>Save</button>
             </div>
             <div className="me-key-hint">
-              احصل على مفتاحك المجاني من{' '}
+              Get your free key from{' '}
               <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
                 console.groq.com/keys
               </a>
-              {' '}· مجاني · يُحفظ في المتصفح فقط
+              {' '}· Free · Saved in browser only
             </div>
           </>
         )}
@@ -482,7 +482,7 @@ const MenuExtractor = () => {
 
         {/* Upload panel */}
         <div className="me-panel">
-          <div className="me-panel-label"><ImageIcon size={13} /> الصورة</div>
+          <div className="me-panel-label"><ImageIcon size={13} /> Image</div>
 
           {!imagePreview ? (
             <>
@@ -494,10 +494,10 @@ const MenuExtractor = () => {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload size={38} strokeWidth={1.4} />
-                <div className="me-drop-title">اسحب الصورة أو اضغط للرفع</div>
-                <div className="me-drop-hint">PNG · JPG · WEBP · حتى 20MB</div>
+                <div className="me-drop-title">Drag image or click to upload</div>
+                <div className="me-drop-hint">PNG · JPG · WEBP · Up to 20MB</div>
                 <button className="me-choose-btn" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                  اختر ملف
+                  Choose File
                 </button>
               </div>
               <input
@@ -514,11 +514,11 @@ const MenuExtractor = () => {
               </div>
               <button className="me-extract-btn" onClick={handleExtract} disabled={isProcessing || !isKeySet}>
                 {isProcessing
-                  ? <><Loader2 size={17} style={{ animation: 'spin 0.9s linear infinite' }} /> جاري التحليل...</>
-                  : <><RefreshCw size={16} /> استخراج المنيو</>
+                  ? <><Loader2 size={17} style={{ animation: 'spin 0.9s linear infinite' }} /> Analyzing...</>
+                  : <><RefreshCw size={16} /> Menu Extractor</>
                 }
               </button>
-              {!isKeySet && <div className="me-no-key-hint">أضف مفتاح API أولاً</div>}
+              {!isKeySet && <div className="me-no-key-hint">Add API key first</div>}
             </>
           )}
 
@@ -533,12 +533,12 @@ const MenuExtractor = () => {
         {/* Results panel */}
         <div className="me-panel">
           <div className="me-results-header">
-            <div className="me-panel-label" style={{ margin: 0 }}><Utensils size={13} /> النتائج</div>
+            <div className="me-panel-label" style={{ margin: 0 }}><Utensils size={13} /> Results</div>
             {sections && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <div className="me-chips">
-                  <span className="me-chip s">{sections.length} قسم</span>
-                  <span className="me-chip i">{totalItems} صنف</span>
+                  <span className="me-chip s">{sections.length} sections</span>
+                  <span className="me-chip i">{totalItems} items</span>
                 </div>
                 <button className="me-export-btn" onClick={() => exportToExcel(sections)}>
                   <Download size={13} /> Excel
@@ -550,15 +550,15 @@ const MenuExtractor = () => {
           {isProcessing && (
             <div className="me-loading">
               <Loader2 size={40} strokeWidth={1.4} style={{ animation: 'spin 0.9s linear infinite', color: 'var(--primary-color)' }} />
-              <div className="me-loading-title">Groq يحلل الصورة...</div>
-              <div className="me-loading-sub">قد يستغرق 10–20 ثانية</div>
+              <div className="me-loading-title">Groq is analyzing the image...</div>
+              <div className="me-loading-sub">May take 10–20 seconds</div>
             </div>
           )}
 
           {!isProcessing && !sections && (
             <div className="me-empty">
               <Utensils size={46} strokeWidth={1} />
-              <p>ارفع صورة منيو واضغط "استخراج المنيو" لبدء التحليل</p>
+              <p>Upload a menu image and click "Menu Extractor" to start analysis</p>
             </div>
           )}
 
@@ -567,12 +567,12 @@ const MenuExtractor = () => {
               <div className="me-sec-head" onClick={() => setCollapsed(p => ({ ...p, [idx]: !p[idx] }))}>
                 {collapsed[idx] ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
                 <span className="me-sec-name">{sec.section}</span>
-                <span className="me-sec-count">{sec.items.length} صنف</span>
+                <span className="me-sec-count">{sec.items.length} items</span>
               </div>
               {!collapsed[idx] && (
                 <table className="me-table">
                   <thead>
-                    <tr><th>الصنف</th><th>السعر</th></tr>
+                    <tr><th>Item</th><th>Price</th></tr>
                   </thead>
                   <tbody>
                     {sec.items.map((item, i) => (

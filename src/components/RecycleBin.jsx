@@ -33,11 +33,8 @@ const RecycleBin = ({
       type: 'danger',
       store,
       title: 'Permanent Delete',
-      titleAr: 'مسح نهائي للمتجر',
       message: `Are you sure you want to PERMANENTLY delete ${store.name}? This action cannot be reversed.`,
-      messageAr: `هل أنت متأكد من مسح ${store.name} نهائياً؟ مكنك التراجع عن هذا الإجراء لاحقاً.`,
-      confirmText: 'Delete Permanently',
-      confirmTextAr: 'مسح الآن'
+      confirmText: 'Delete Permanently'
     });
   };
 
@@ -47,11 +44,8 @@ const RecycleBin = ({
       type: 'success',
       store,
       title: 'Restore Record',
-      titleAr: 'استرجاع السجل',
       message: `Do you want to restore ${store.name} back to the main list?`,
-      messageAr: `هل تود استرجاع متجر ${store.name} إلى القائمة الرئيسية؟`,
-      confirmText: 'Restore Now',
-      confirmTextAr: 'استرجاع الآن'
+      confirmText: 'Restore Now'
     });
   };
 

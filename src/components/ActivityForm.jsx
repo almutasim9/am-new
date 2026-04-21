@@ -183,16 +183,14 @@ const modalVariants = {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {savedCount > 0 && (
                 <span style={{
                   fontSize: '0.72rem', fontWeight: 700,
                   background: '#dcfce7', color: '#16a34a',
                   padding: '3px 10px', borderRadius: '20px',
                   border: '1px solid #bbf7d0'
                 }}>
-                  ✓ {savedCount} {savedCount === 1 ? 'نشاط' : 'نشاطات'} مسجلة
+                  ✓ {savedCount} {savedCount === 1 ? 'activity' : 'activities'} recorded
                 </span>
-              )}
               <button className="close-btn-circle" onClick={() => { setSavedCount(0); onClose(); }}>
                 <X size={20} />
               </button>
@@ -219,7 +217,7 @@ const modalVariants = {
                   gap: '8px'
                 }}
               >
-                <Check size={16} /> تم تسجيل النشاط — يمكنك إضافة نشاط آخر أو إغلاق النافذة
+                <Check size={16} /> Activity recorded — you can add another or close the window.
               </motion.div>
             )}
           </AnimatePresence>
@@ -230,7 +228,7 @@ const modalVariants = {
               {/* Interaction Date - Compact */}
               <div className="form-section compact-col-date">
                 <label className="section-label">
-                  <span><Calendar size={14} /> Date / التاريخ</span>
+                  <span><Calendar size={14} /> Interaction Date</span>
                 </label>
                 <input 
                   type="date" 
@@ -243,14 +241,14 @@ const modalVariants = {
               {/* Contact Type - More Compact */}
               <div className="form-section compact-col-contact">
                 <label className="section-label">
-                  <span><Send size={14} /> Contact / التواصل</span>
+                  <span><Send size={14} /> Contact Method</span>
                 </label>
                 <div className="compact-contact-types">
                   {[
-                    { value: 'call',    label: '📞 مكالمة', labelEn: 'Call' },
-                    { value: 'visit',   label: '🚗 زيارة',  labelEn: 'Visit'  },
-                    { value: 'whatsapp',label: '💬 واتساب', labelEn: 'WA'   },
-                    { value: 'online',  label: '🌐 أونلاين',labelEn: 'Online'     },
+                    { value: 'call',    label: '📞 Call', labelEn: 'Call' },
+                    { value: 'visit',   label: '🚗 Visit',  labelEn: 'Visit'  },
+                    { value: 'whatsapp',label: '💬 WhatsApp', labelEn: 'WA'   },
+                    { value: 'online',  label: '🌐 Online',labelEn: 'Online'     },
                   ].map(ct => (
                     <button
                       key={ct.value}
@@ -281,7 +279,7 @@ const modalVariants = {
             {!initialStoreId && (
               <div className="form-section">
                 <label className="section-label">
-                  <span><Store size={14} /> Target Store / المتجر المستهدف</span>
+                  <span><Store size={14} /> Target Store</span>
                 </label>
 
                 {/* Filters above search */}
@@ -294,7 +292,7 @@ const modalVariants = {
                         className={`filter-chip ${statusFilter === s ? 'active' : ''}`}
                         onClick={() => setStatusFilter(s)}
                       >
-                        {s === 'all' ? 'الكل' : s === 'active' ? 'نشط' : 'غير نشط'}
+                        {s === 'all' ? 'All' : s === 'active' ? 'Active' : 'Inactive'}
                       </button>
                     ))}
                   </div>
@@ -304,7 +302,7 @@ const modalVariants = {
                         type="button"
                         className={`filter-chip ${categoryFilter === '' ? 'active' : ''}`}
                         onClick={() => setCategoryFilter('')}
-                      >كل الفئات</button>
+                      >All Categories</button>
                       {availableCategories.map(cat => (
                         <button
                           key={cat}
@@ -396,7 +394,7 @@ const modalVariants = {
             {/* Outcome Selection (Reason) */}
             <div className="form-section">
               <label className="section-label">
-                <span><AlertCircle size={14} /> Interaction Reason / سبب التواصل</span>
+                <span><AlertCircle size={14} /> Interaction Reason</span>
               </label>
               
               <div className="modern-outcome-container">
@@ -436,7 +434,7 @@ const modalVariants = {
                           <span className="selected-label">{selectedOutcome.name}</span>
                         </>
                       ) : (
-                        <span className="placeholder">Pick another reason... اختر سبباً آخر</span>
+                        <span className="placeholder">Pick another reason...</span>
                       )}
                     </div>
                     <ChevronRight size={18} className="select-arrow" />
@@ -450,7 +448,7 @@ const modalVariants = {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                       >
-                        <div className="popover-results-header">More Reasons / أسباب إضافية</div>
+                        <div className="popover-results-header">More Reasons</div>
                         <div className="popover-results-list">
                           {otherOutcomes.map(o => {
                             const Icon = OUTCOME_ICONS[o.name] || Tag;
@@ -489,7 +487,7 @@ const modalVariants = {
                 onClick={() => setShowOptionals(!showOptionals)}
               >
                 {showOptionals ? <ChevronRight size={16} className="rot-90" /> : <ChevronRight size={16} />}
-                Add Interaction Details & Next Steps (Optional) / تفاصيل ومتابعة (اختياري)
+                Add Interaction Details & Next Steps (Optional)
               </button>
             </div>
 
@@ -504,7 +502,7 @@ const modalVariants = {
                   {/* Notes & Quick Templates (Result) */}
                   <div className="form-section">
                     <label className="section-label">
-                      <span><Clock size={14} /> Interaction Result / نتيجة التواصل</span>
+                      <span><Clock size={14} /> Interaction Result</span>
                     </label>
                     <div className="quick-templates-grid">
                       {QUICK_TEMPLATES.map(t => (
@@ -520,7 +518,7 @@ const modalVariants = {
                     </div>
                     <textarea 
                       rows="2" 
-                      placeholder="What happened? / ماذا حدث؟..."
+                      placeholder="What happened? ..."
                       className="premium-textarea compact-input"
                       value={formData.notes}
                       onChange={e => setFormData({...formData, notes: e.target.value})}
@@ -546,7 +544,7 @@ const modalVariants = {
 
                   {/* Follow-up Section (Advanced) */}
                   <div className="form-section advanced-options">
-                    <label className="section-label"><Zap size={14} /> Next Steps / الخطوات التالية</label>
+                    <label className="section-label"><Zap size={14} /> Next Steps</label>
                     <div className="follow-up-group">
                       <input 
                         type="date" 
@@ -573,7 +571,7 @@ const modalVariants = {
             {/* Actions Footer */}
             <div className="form-actions-fixed">
               <button type="submit" className="btn-submit-activity">
-                <Send size={18} /> Record Interaction / تسجيل النشاط
+                <Send size={18} /> Record Interaction
               </button>
             </div>
           </form>

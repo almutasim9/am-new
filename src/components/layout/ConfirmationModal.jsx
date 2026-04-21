@@ -12,7 +12,6 @@ const ConfirmationModal = ({
   message, 
   messageAr,
   confirmText = 'Confirm',
-  confirmTextAr = 'تأكيد',
   type = 'danger',
   isLoading = false 
 }) => {
@@ -70,9 +69,7 @@ const ConfirmationModal = ({
 
             <div className="modal-text-content">
               <h2>{title}</h2>
-              <h3>{titleAr}</h3>
               <p>{message}</p>
-              <p className="ar-p">{messageAr}</p>
             </div>
 
             <div className="modal-actions-v2">
@@ -80,7 +77,7 @@ const ConfirmationModal = ({
                 className="btn-modal-base btn-modal-cancel"
                 onClick={onClose}
               >
-                Cancel / إلغاء
+                Cancel
               </button>
               <button
                 className="btn-modal-base btn-modal-confirm"
@@ -93,7 +90,7 @@ const ConfirmationModal = ({
                 ) : (
                   <>
                     <CheckCircle2 size={18} />
-                    <span style={{ fontSize: '0.85rem' }}>{confirmText} / {confirmTextAr}</span>
+                    <span style={{ fontSize: '0.85rem' }}>{confirmText}</span>
                   </>
                 )}
               </button>

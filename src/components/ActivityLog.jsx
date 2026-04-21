@@ -404,8 +404,8 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                     <FileDown size={18} color="var(--primary-color)" />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>تصدير السجلات</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-dim)' }}>حدد المدة الزمنية للتصدير</p>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Export Logs</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-dim)' }}>Select export time range</p>
                   </div>
                 </div>
                 <button className="export-close-btn" onClick={() => setIsExportOpen(false)} aria-label="Close">
@@ -416,11 +416,11 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
               {/* Quick Presets */}
               <div className="export-presets">
                 {[
-                  { key: 'today',     label: 'اليوم' },
-                  { key: 'week',      label: 'هذا الأسبوع' },
-                  { key: 'month',     label: 'هذا الشهر' },
-                  { key: 'lastMonth', label: 'الشهر الماضي' },
-                  { key: 'all',       label: 'الكل' },
+                  { key: 'today',     label: 'Today' },
+                  { key: 'week',      label: 'This Week' },
+                  { key: 'month',     label: 'This Month' },
+                  { key: 'lastMonth', label: 'Last Month' },
+                  { key: 'all',       label: 'All Time' },
                 ].map(({ key, label }) => (
                   <button
                     key={key}
@@ -435,7 +435,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
               {/* Date Inputs */}
               <div className="export-date-row">
                 <div className="export-date-group">
-                  <label>من تاريخ</label>
+                  <label>From Date</label>
                   <input
                     type="date"
                     value={exportFrom}
@@ -444,7 +444,7 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                 </div>
                 <div className="export-date-sep">—</div>
                 <div className="export-date-group">
-                  <label>إلى تاريخ</label>
+                  <label>To Date</label>
                   <input
                     type="date"
                     value={exportTo}
@@ -457,14 +457,14 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
               <div className="export-preview">
                 <span className="export-count">{exportPreviewCount}</span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  {exportPreviewCount === 1 ? 'نشاط سيتم تصديره' : 'نشاط سيتم تصديرهم'}
+                  {exportPreviewCount === 1 ? 'activity will be exported' : 'activities will be exported'}
                 </span>
                 {(exportFrom || exportTo) && (
                   <button
                     className="clear-range-btn"
                     onClick={() => { setExportFrom(''); setExportTo(''); }}
                   >
-                    مسح المدة
+                    Clear Range
                   </button>
                 )}
               </div>
@@ -478,14 +478,14 @@ const ActivityLog = ({ activities, stores, outcomes, onAddActivity, onResolveAct
                   style={{ flex: 2, justifyContent: 'center', gap: '8px', opacity: exportPreviewCount === 0 ? 0.5 : 1 }}
                 >
                   <Download size={16} />
-                  تصدير Excel
+                  Export Excel
                 </button>
                 <button
                   className="btn-secondary"
                   onClick={() => setIsExportOpen(false)}
                   style={{ flex: 1, justifyContent: 'center' }}
                 >
-                  إلغاء
+                  Cancel
                 </button>
               </div>
             </motion.div>

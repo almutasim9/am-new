@@ -3,16 +3,8 @@ import { Target, TrendingUp, AlertCircle, Settings, Loader2, Save } from 'lucide
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isWithinInterval, eachDayOfInterval } from 'date-fns';
 
-// Commercial cycle: 19th of month N → 18th of month N+1.
-// Returns { start, end, cycleMonth } where cycleMonth is the yyyy-MM of the cycle's start.
-const getCommercialCycle = (now) => {
-  const start = now.getDate() >= 19
-    ? new Date(now.getFullYear(), now.getMonth(), 19)
-    : new Date(now.getFullYear(), now.getMonth() - 1, 19);
-  const end = new Date(start.getFullYear(), start.getMonth() + 1, 18, 23, 59, 59, 999);
-  return { start, end, cycleMonth: format(start, 'yyyy-MM') };
-};
 import { targetService } from '../services/api';
+import { getCommercialCycle } from '../utils/commercialCycle';
 
 // PostgREST error code: no rows returned by .maybeSingle() when table missing
 const POSTGREST_NOT_FOUND = 'PGRST116';
@@ -153,11 +145,11 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
     storeOffers.forEach(so => {
       storeOfferCounts[so.store_id] = (storeOfferCounts[so.store_id] || 0) + 1;
     });
-    const storesWithTwoPlusOffers = Object.values(storeOfferCounts).filter(count => count >= 2).length;
+    const storesWithOffers = Object.values(storeOfferCounts).filter(count => count >= 1).length;
     
     const offersTargetPct = Number(target.offers_target_pct || 0);
     const offersTargetCount = Math.round((offersTargetPct / 100) * overallActiveStores);
-    const currentOffersPct = overallActiveStores > 0 ? (storesWithTwoPlusOffers / overallActiveStores) * 100 : 0;
+    const currentOffersPct = overallActiveStores > 0 ? (storesWithOffers / overallActiveStores) * 100 : 0;
 
     return {
       monthTotal: monthCalls.length,
@@ -172,7 +164,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
       discountRatioTargetPct,
       currentDiscountRatioPct,
       overallActiveStores,
-      storesWithTwoPlusOffers,
+      storesWithOffers,
       offersTargetPct,
       offersTargetCount,
       currentOffersPct
@@ -189,13 +181,9 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
     <div className="section-container">
       <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed var(--danger)' }}>
         <AlertCircle size={48} color="var(--danger)" style={{ marginBottom: '1.5rem' }} />
-        <h2 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Setup Required / الإعداد مطلوب</h2>
+        <h2 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Setup Required</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem auto' }}>
-          To load the Targets section, run the SQL migration script in your Supabase dashboard.
-          <br />
-          <span style={{ fontSize: '0.85em', opacity: 0.7 }}>
-            لتحميل قسم التارغت، يرجى تشغيل أوامر الـ SQL في لوحة Supabase.
-          </span>
+          To load the Targets section, please run the SQL migration script in your Supabase dashboard. This will create the necessary tables and functions.
         </p>
         <div style={{ background: '#020617', padding: '1rem', borderRadius: '12px', textAlign: 'left', overflowX: 'auto', marginBottom: '1.5rem' }}>
           <code style={{ color: '#818cf8', fontSize: '0.8rem' }}>
@@ -252,7 +240,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
                 <label htmlFor="include_weekend" style={{ marginBottom: 0 }}>Include Fri/Sat in Target</label>
               </div>
               <div className="form-group">
-                <label>هدف تغطية الهايلايتس % (Commercial)</label>
+                <label>Highlights Coverage Target % (Commercial)</label>
                 <input
                   type="number"
                   min="0"
@@ -263,7 +251,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
                 />
               </div>
               <div className="form-group">
-                <label>هدف نسبة الديسكاونت % (MV/GMV)</label>
+                <label>Discount Ratio Target % (MV/GMV)</label>
                 <input
                   type="number"
                   min="0"
@@ -274,7 +262,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
                 />
               </div>
               <div className="form-group">
-                <label>هدف العروض النشطة % (عرضين أو اكثر)</label>
+                <label>Active Offers Target % (1+ Offer)</label>
                 <input
                   type="number"
                   min="0"
@@ -329,19 +317,19 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
             />
           </div>
           <p className="stat-label" style={{ fontSize: '0.75rem' }}>
-            {stats.monthlyProgress}% من الهدف الشهري · {Math.max(0, stats.monthlyGoal - stats.monthTotal)} باقي
+            {stats.monthlyProgress}% of monthly goal · {Math.max(0, stats.monthlyGoal - stats.monthTotal)} remaining
           </p>
         </div>
 
         {/* Highlights Coverage Card (Commercial) */}
         <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">تغطية الهايلايتس (تجاري)</div>
+            <div className="stat-label">Highlights Coverage (Commercial)</div>
             <Target size={20} color="#f59e0b" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
             {stats.storesWithHighlights}
-            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.highlightsTargetCount} هدف</span>
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.highlightsTargetCount} goal</span>
           </div>
           <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
             <motion.div
@@ -351,19 +339,19 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
             />
           </div>
           <p className="stat-label" style={{ fontSize: '0.75rem' }}>
-            الحالي {stats.currentHighlightsPct.toFixed(1)}% — الهدف {stats.highlightsTargetPct}% من {stats.activeCount} متجر نشط
+            Current {stats.currentHighlightsPct.toFixed(1)}% — Target {stats.highlightsTargetPct}% of {stats.activeCount} active stores
           </p>
         </div>
 
         {/* Discount Ratio Card (MV/GMV) */}
         <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #ef4444' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">نسبة الديسكاونت (MV / GMV)</div>
+            <div className="stat-label">Discount Ratio (MV / GMV)</div>
             <TrendingUp size={20} color="#ef4444" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
             {stats.currentDiscountRatioPct.toFixed(1)}%
-            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.discountRatioTargetPct}% هدف</span>
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.discountRatioTargetPct}% goal</span>
           </div>
           <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
             <motion.div
@@ -374,30 +362,30 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
           </div>
           <p className="stat-label" style={{ fontSize: '0.75rem' }}>
             {stats.currentDiscountRatioPct >= stats.discountRatioTargetPct
-              ? 'تحقق الهدف ✓'
-              : `باقي ${(stats.discountRatioTargetPct - stats.currentDiscountRatioPct).toFixed(1)}% للوصول للهدف`}
+              ? 'Target Achieved ✓'
+              : `${(stats.discountRatioTargetPct - stats.currentDiscountRatioPct).toFixed(1)}% remaining to reach target`}
           </p>
         </div>
 
         {/* Offers Target Card */}
         <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #8b5cf6' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">هدف العروض النشطة</div>
+            <div className="stat-label">Active Offers Target (1+ Offer)</div>
             <Target size={20} color="#8b5cf6" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
-            {stats.storesWithTwoPlusOffers}
-            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.offersTargetCount} هدف</span>
+            {stats.storesWithOffers}
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.offersTargetCount} goal</span>
           </div>
           <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${Math.min(100, stats.offersTargetCount > 0 ? (stats.storesWithTwoPlusOffers / stats.offersTargetCount) * 100 : 0)}%` }}
-              style={{ height: '100%', background: stats.storesWithTwoPlusOffers >= stats.offersTargetCount ? 'var(--success)' : '#8b5cf6' }}
+              animate={{ width: `${Math.min(100, stats.offersTargetCount > 0 ? (stats.storesWithOffers / stats.offersTargetCount) * 100 : 0)}%` }}
+              style={{ height: '100%', background: stats.storesWithOffers >= stats.offersTargetCount ? 'var(--success)' : '#8b5cf6' }}
             />
           </div>
           <p className="stat-label" style={{ fontSize: '0.75rem' }}>
-            الحالي {stats.currentOffersPct.toFixed(1)}% — الهدف {stats.offersTargetPct}% من {stats.overallActiveStores} متجر كلي
+            Current {stats.currentOffersPct.toFixed(1)}% — Target {stats.offersTargetPct}% of {stats.overallActiveStores} total stores
           </p>
         </div>
       </div>

@@ -78,7 +78,7 @@ const Settings = ({
           <section className="glass-card" style={{ padding: '2rem' }}>
             <div className="settings-section-title">
               <Layout size={20} />
-              <h3>Activity Outcomes / النتائج</h3>
+              <h3>Activity Outcomes</h3>
             </div>
             <form onSubmit={handleOutcomeSubmit} className="settings-form-row">
               <input type="text" placeholder="e.g. Training Session" value={newOutcome} onChange={e => setNewOutcome(e.target.value)} />
@@ -97,7 +97,7 @@ const Settings = ({
           <section className="glass-card" style={{ padding: '2rem' }}>
             <div className="settings-section-title">
               <Globe size={20} />
-              <h3>Management Zones / المناطق</h3>
+              <h3>Management Zones</h3>
             </div>
             <form onSubmit={handleZoneSubmit} className="settings-form-row">
               <input type="text" placeholder="e.g. Baghdad, Basra" value={newZone} onChange={e => setNewZone(e.target.value)} />
@@ -119,7 +119,7 @@ const Settings = ({
           <section className="glass-card" style={{ padding: '2rem' }}>
             <div className="settings-section-title">
               <Layers size={20} />
-              <h3>Store Categories / التصنيفات</h3>
+              <h3>Store Categories</h3>
             </div>
             <form onSubmit={handleCategorySubmit} className="settings-form-row">
               <input type="text" placeholder="e.g. Supermarket" value={newCategory} onChange={e => setNewCategory(e.target.value)} />
@@ -138,7 +138,7 @@ const Settings = ({
           <section className="glass-card" style={{ padding: '2rem' }}>
             <div className="settings-section-title" style={{ color: 'var(--danger)' }}>
               <Shield size={20} />
-              <h3>Closure Reasons / أسباب الإغلاق</h3>
+              <h3>Closure Reasons</h3>
             </div>
             <form onSubmit={handleClosureReasonSubmit} className="settings-form-row">
               <input type="text" placeholder="e.g. Poor Performance" value={newClosureReason} onChange={e => setNewClosureReason(e.target.value)} />
@@ -158,7 +158,7 @@ const Settings = ({
           <section className="glass-card" style={{ padding: '1.5rem' }}>
             <div className="settings-section-title">
               <Database size={20} />
-              <h3>System Maintenance / صيانة</h3>
+              <h3>System Maintenance</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <button 
@@ -176,14 +176,14 @@ const Settings = ({
                 onClick={() => setShowConfirm(true)}
                 style={{ width: '100%', justifyContent: 'center', border: '1px solid #fee2e2', color: '#ef4444' }}
               >
-                Clear Local Storage / تصفير الموقع
+                Clear Local Storage & Reset
               </button>
               
               {showConfirm && (
                  <div style={{ padding: '1rem', background: '#ffeef0', borderRadius: '12px', textAlign: 'center', border: '1px solid #fecaca' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', marginBottom: '8px', justifyContent: 'center' }}>
                      <AlertTriangle size={16} />
-                     <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>Full application reset? / تصفير التطبيق بالكامل؟</p>
+                     <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>Full application reset?</p>
                    </div>
                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                      <button className="btn-primary" onClick={handleClearCache} style={{ background: 'var(--danger)', padding: '6px 12px', fontSize: '0.75rem', borderRadius: '8px', color: 'white', border: 'none' }}>Yes, Reset</button>

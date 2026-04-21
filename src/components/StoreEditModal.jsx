@@ -82,25 +82,25 @@ const StoreEditModal = ({ isOpen, store, onClose, onSave }) => {
             <div className="sem-header">
               <div>
                 <h2>Edit Store Info</h2>
-                <p>تعديل معلومات المتجر · <span className="sem-store-id">#{store?.id}</span></p>
+                <p>Edit store information · <span className="sem-store-id">#{store?.id}</span></p>
               </div>
               <button className="sem-close" onClick={onClose}><X size={18} /></button>
             </div>
 
             <div className="sem-body">
               <section>
-                <h4><Hash size={13} /> Basic Info / المعلومات الأساسية</h4>
+                <h4><Hash size={13} /> Basic Info</h4>
                 <div className="sem-grid">
                   <Field label="Store Name" icon={User} name="name" value={form.name} onChange={handleChange} placeholder="e.g. Burger King" fullWidth />
                   <Field label="Primary Contact" icon={User} name="owner_name" value={form.owner_name} onChange={handleChange} placeholder="Owner name" />
                   <Field label="Business Phone" icon={Phone} name="phone" value={form.phone} onChange={handleChange} placeholder="07XX..." />
-                  <Field label="Category" icon={Bookmark} name="category" value={form.category} onChange={handleChange} placeholder="e.g. مطاعم" />
+                  <Field label="Category" icon={Bookmark} name="category" value={form.category} onChange={handleChange} placeholder="e.g. Restaurants" />
                   <Field label="Brand ID" icon={Bookmark} name="brand_id" value={form.brand_id} onChange={handleChange} placeholder="Brand code" />
                 </div>
               </section>
 
               <section>
-                <h4><MapPin size={13} /> Location / الموقع</h4>
+                <h4><MapPin size={13} /> Location</h4>
                 <div className="sem-grid">
                   <Field label="Zone / Region" icon={MapPin} name="zone" value={form.zone} onChange={handleChange} placeholder="Assign zone" />
                   <Field label="Area / Neighborhood" icon={TrendingUp} name="area" value={form.area} onChange={handleChange} placeholder="Specific area" />
@@ -110,7 +110,7 @@ const StoreEditModal = ({ isOpen, store, onClose, onSave }) => {
               </section>
 
               <section>
-                <h4><ShieldCheck size={13} /> Team Contacts / فريق المتجر</h4>
+                <h4><ShieldCheck size={13} /> Team Contacts</h4>
                 <div className="sem-grid">
                   <Field label="Cashier" icon={Smartphone} name="cashier_phone" value={form.cashier_phone} onChange={handleChange} placeholder="Cashier phone" />
                   <Field label="Floor Manager" icon={User} name="restaurant_manager_phone" value={form.restaurant_manager_phone} onChange={handleChange} placeholder="Manager phone" />
@@ -119,7 +119,7 @@ const StoreEditModal = ({ isOpen, store, onClose, onSave }) => {
               </section>
 
               <section>
-                <h4><Smartphone size={13} /> Hardware / الأجهزة</h4>
+                <h4><Smartphone size={13} /> Hardware</h4>
                 <div className="sem-toggles">
                   <Toggle label="Point of Sale (POS)" icon={Database} checked={!!form.has_pos} onChange={() => toggle('has_pos')} />
                   <Toggle label="SIM Integration" icon={Globe} checked={!!form.has_sim} onChange={() => toggle('has_sim')} />
@@ -129,11 +129,11 @@ const StoreEditModal = ({ isOpen, store, onClose, onSave }) => {
 
             <div className="sem-footer">
               <button className="sem-btn cancel" onClick={onClose} disabled={saving}>
-                <X size={14} /> Cancel / إلغاء
+                <X size={14} /> Cancel
               </button>
               <button className="sem-btn save" onClick={handleSave} disabled={saving}>
                 {saving ? <div className="sem-spinner" /> : <Save size={14} />}
-                Save Changes / حفظ
+                Save Changes
               </button>
             </div>
           </motion.div>

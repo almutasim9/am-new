@@ -2,24 +2,24 @@ import React, { useMemo } from 'react';
 import { LayoutDashboard, Store, ClipboardList, BarChart3, Bookmark, Settings as SettingsIcon, Moon, Sun, CalendarCheck, TrendingUp, Target, LogOut, User, X, Trash2, ChevronLeft, ChevronRight, Gift, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
-const Sidebar = ({ activeTab, setActiveTab, stats, theme, setTheme, onSelectStore, user, isOpen, onClose, isCollapsed, onToggleCollapse }) => {
+const Sidebar = ({ activeTab, setActiveTab, stats, cycleStats, theme, setTheme, onSelectStore, user, isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   const completionRate = useMemo(() =>
-    stats.totalActivities ? Math.round((stats.completedTasks / stats.totalActivities) * 100) : 0,
-  [stats.completedTasks, stats.totalActivities]);
+    cycleStats.total ? Math.round((cycleStats.completed / cycleStats.total) * 100) : 0,
+  [cycleStats.completed, cycleStats.total]);
 
   const navItems = [
     { id: 'dashboard',   icon: LayoutDashboard, label: 'Dashboard',    onClick: () => { setActiveTab('dashboard'); onSelectStore(null); } },
     { id: 'stores',      icon: Store,            label: 'Stores',  onClick: () => { setActiveTab('stores'); onSelectStore(null); } },
-    { id: 'activities',  icon: ClipboardList,    label: 'Daily Log',    badge: stats.pendingTasks > 0 ? stats.pendingTasks : null },
+    { id: 'activities',  icon: ClipboardList,    label: 'Daily Log',    badge: cycleStats.pending > 0 ? cycleStats.pending : null },
     { id: 'stats',       icon: BarChart3,        label: 'Statistics'   },
     { id: 'performance', icon: TrendingUp,       label: 'Performance'  },
     { id: 'target',      icon: Target,           label: 'Target'       },
-    { id: 'offers',          icon: Gift,             label: 'العروض'         },
-    { id: 'menu-extractor',  icon: UtensilsCrossed,  label: 'استخراج المنيو' },
+    { id: 'offers',          icon: Gift,             label: 'Offers'         },
+    { id: 'menu-extractor',  icon: UtensilsCrossed,  label: 'Menu Extractor' },
     { id: 'library',         icon: Bookmark,         label: 'Library'        },
     { id: 'settings',    icon: SettingsIcon,     label: 'Settings'     },
     { id: 'recycle',     icon: Trash2,           label: 'Recycle Bin', danger: true },

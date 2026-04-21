@@ -20,10 +20,10 @@ function showUpdateBanner(onAccept) {
   `;
 
   const label = document.createElement('span');
-  label.textContent = '🔄 تحديث جديد متاح';
+  label.textContent = '🔄 New update available';
 
   const yesBtn = document.createElement('button');
-  yesBtn.textContent = 'تحديث الآن';
+  yesBtn.textContent = 'Update Now';
   yesBtn.style.cssText = `
     background:#4f46e5; color:white; border:none; padding:7px 16px;
     border-radius:8px; cursor:pointer; font-weight:700; font-size:13px;
@@ -31,7 +31,7 @@ function showUpdateBanner(onAccept) {
   yesBtn.onclick = () => { banner.remove(); onAccept(); };
 
   const noBtn = document.createElement('button');
-  noBtn.textContent = 'لاحقاً';
+  noBtn.textContent = 'Later';
   noBtn.style.cssText = `
     background:rgba(255,255,255,0.1); color:white; border:none; padding:7px 12px;
     border-radius:8px; cursor:pointer; font-size:13px;

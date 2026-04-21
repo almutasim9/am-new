@@ -94,10 +94,10 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
         }}>
           <div>
             <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.1rem' }}>
-              {step === 1 ? 'اختر المتجر' : `عروض: ${selectedStore?.name}`}
+              {step === 1 ? 'Select Store' : `Offers: ${selectedStore?.name}`}
             </h2>
             <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-              {step === 1 ? 'ابحث واختر المتجر المطلوب' : 'حدد العروض المراد إضافتها'}
+              {step === 1 ? 'Search and select the desired store' : 'Select offers to add'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -109,7 +109,7 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
                   border: '1px solid var(--border-color)', background: 'var(--surface-hover)',
                   cursor: 'pointer', color: 'var(--text-dim)',
                 }}
-              >← رجوع</button>
+              >← Back</button>
             )}
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
               <X size={22} />
@@ -125,14 +125,14 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
                 <Search size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
                 <input
                   type="text"
-                  placeholder="بحث بالاسم أو ID..."
+                  placeholder="Search by name or ID..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   autoFocus
                   style={{
                     width: '100%', padding: '0.65rem 2rem 0.65rem 0.75rem', borderRadius: '10px',
                     border: '1px solid var(--border-color)', background: 'var(--surface-hover)',
-                    textAlign: 'right', fontSize: '0.85rem',
+                    textAlign: 'left', fontSize: '0.85rem',
                   }}
                 />
               </div>
@@ -143,7 +143,7 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
               {filteredStores.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-dim)' }}>
                   <Store size={36} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                  <p style={{ fontSize: '0.9rem' }}>لا توجد نتائج</p>
+                  <p style={{ fontSize: '0.9rem' }}>No results found</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -172,14 +172,14 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{s.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600 }}>#{s.id} • {s.zone || 'بدون زون'}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600 }}>#{s.id} • {s.zone || 'No Zone'}</div>
                         </div>
                         {assignedCount > 0 && (
                           <span style={{
                             padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800,
                             background: 'rgba(16,185,129,0.1)', color: '#10b981',
                           }}>
-                            {assignedCount} عرض
+                            {assignedCount} offers
                           </span>
                         )}
                       </div>
@@ -196,7 +196,7 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
               {activeOffers.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-dim)' }}>
                   <Gift size={36} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                  <p style={{ fontSize: '0.9rem' }}>لا توجد عروض — أضف عرض أولاً</p>
+                  <p style={{ fontSize: '0.9rem' }}>No offers found — add an offer first</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -249,9 +249,9 @@ const AssignOffersModal = ({ stores, offers, storeOffers, onSave, onClose, initi
                 onClick={() => onSave(selectedStore.id, [...selectedOfferIds])}
                 disabled={activeOffers.length === 0}
               >
-                حفظ ({selectedOfferIds.size} عرض)
+                Save ({selectedOfferIds.size} offers)
               </button>
-              <button className="btn-secondary" style={{ flex: 1 }} onClick={onClose}>إلغاء</button>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
             </div>
           </>
         )}
@@ -302,7 +302,7 @@ const StoreOfferRow = ({ store, assignedOffers, onEdit, onRemoveOffer }) => {
             padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800,
             background: 'rgba(79,70,229,0.08)', color: 'var(--primary-color)',
           }}>
-            {assignedOffers.length} عرض
+            {assignedOffers.length} offers
           </span>
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(store); }}
@@ -313,7 +313,7 @@ const StoreOfferRow = ({ store, assignedOffers, onEdit, onRemoveOffer }) => {
             }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary-color)'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
-            title="تعديل العروض"
+            title="Edit Offers"
           >
             <Pencil size={14} />
           </button>
@@ -356,14 +356,14 @@ const StoreOfferRow = ({ store, assignedOffers, onEdit, onRemoveOffer }) => {
                     }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
-                    title="إزالة العرض"
+                    title="Remove Offer"
                   >
                     <X size={13} strokeWidth={3} />
                   </button>
                 </div>
               ))}
               {assignedOffers.length === 0 && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>لا توجد عروض مرتبطة</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>No linked offers</span>
               )}
             </div>
           </motion.div>
@@ -397,7 +397,7 @@ const OfferStoresModal = ({ offer, storeOffers, stores, onClose }) => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.1rem' }}> المتاجر المرتبطة </h2>
+            <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.1rem' }}> Linked Stores </h2>
             <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-dim)', fontWeight: 600 }}> {offer.title} </p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
@@ -408,7 +408,7 @@ const OfferStoresModal = ({ offer, storeOffers, stores, onClose }) => {
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem' }}>
           {assignedStores.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-dim)' }}>
-              <p>لا يوجد أي متجر مرتبط بهذا العرض حالياً.</p>
+              <p>No stores currently linked to this offer.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -432,7 +432,7 @@ const OfferStoresModal = ({ offer, storeOffers, stores, onClose }) => {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOffer, onDeleteOffer, onBulkAssign, onUnassignOffer }) => {
+const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOffer, onDeleteOffer, onAssignOffer, onBulkAssign, onUnassignOffer }) => {
   const [isAddOfferOpen, setIsAddOfferOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [editStore, setEditStore] = useState(null); // store object to edit offers for
@@ -514,7 +514,11 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
     }
     // Add newly selected offers
     for (const oid of toAdd) {
-      onBulkAssign([storeId], oid);
+      if (onAssignOffer) {
+        onAssignOffer(storeId, oid);
+      } else {
+        onBulkAssign([storeId], oid);
+      }
     }
 
     setIsAssignOpen(false);
@@ -530,15 +534,15 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <h2 className="gradient-text">دليل العروض</h2>
-          <p className="stat-label">إدارة العروض وربطها بالمتاجر</p>
+          <h2 className="gradient-text">Offers Directory</h2>
+          <p className="stat-label">Manage offers and link them to stores</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button className="btn-secondary" onClick={() => openAddOffer()}>
-            <Plus size={16} /> إضافة عرض جديد
+            <Plus size={16} /> Add New Offer
           </button>
           <button className="btn-primary" onClick={() => setIsAssignOpen(true)}>
-            <Gift size={16} /> إضافة عرض إلى ستور
+            <Gift size={16} /> Assign Offer to Store
           </button>
         </div>
       </div>
@@ -552,23 +556,23 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
       }}>
         <KpiCard
           icon={Gift}
-          label="إجمالي العروض"
+          label="Total Offers"
           value={offers.length}
           color="#8b5cf6"
         />
         <KpiCard
           icon={CheckCircle}
-          label="متاجر عندها عرض"
+          label="Stores with Offers"
           value={storesWithOffersList.length}
           color="#3b82f6"
-          subLabel={`من ${activeStores.length} متجر نشط`}
+          subLabel={`from ${activeStores.length} active stores`}
         />
         <KpiCard
           icon={AlertCircle}
-          label="متاجر بدون عرض"
+          label="Stores without Offers"
           value={storesWithoutOffersCount}
           color={storesWithoutOffersCount > 0 ? '#ef4444' : '#10b981'}
-          subLabel={storesWithoutOffersCount === 0 ? 'كل المتاجر مغطاة ✅' : 'تحتاج تفعيل'}
+          subLabel={storesWithoutOffersCount === 0 ? 'All stores covered ✅' : 'Needs Activation'}
         />
       </div>
 
@@ -576,7 +580,7 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
       <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAllOffers ? '1rem' : 0 }}>
           <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Tag size={15} /> العروض المتوفرة حالياً ({offers.length})
+            <Tag size={15} /> Currently Available Offers ({offers.length})
           </h4>
           <button
             onClick={() => setShowAllOffers(v => !v)}
@@ -586,7 +590,7 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
               cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px',
             }}
           >
-            {showAllOffers ? 'إخفاء' : 'عرض الكل'}
+            {showAllOffers ? 'Hide' : 'Show All'}
             {showAllOffers ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
@@ -602,7 +606,7 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
             >
               {offers.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-                  <p>لا توجد عروض — أضف أول عرض</p>
+                  <p>No offers found — add your first offer</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -635,18 +639,18 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
                           background: storeCount > 0 ? 'rgba(59,130,246,0.1)' : 'var(--surface-hover)',
                           color: storeCount > 0 ? '#3b82f6' : 'var(--text-dim)',
                         }}>
-                          {storeCount} متجر
+                          {storeCount} stores
                         </span>
                         <div style={{ display: 'flex', gap: '4px' }}>
                           <button
                             onClick={(e) => { e.stopPropagation(); openAddOffer(o); }}
                             style={{ padding: '4px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--text-dim)', cursor: 'pointer' }}
-                            title="تعديل"
+                            title="Edit"
                           ><Edit2 size={13} /></button>
                           <button
                             onClick={(e) => { e.stopPropagation(); onDeleteOffer(o.id); }}
                             style={{ padding: '4px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer' }}
-                            title="حذف"
+                            title="Delete"
                           ><Trash2 size={13} /></button>
                         </div>
                       </div>
@@ -663,7 +667,7 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            المتاجر المرتبطة بالعروض ({storesWithOffersList.length})
+            Stores Linked to Offers ({storesWithOffersList.length})
           </h3>
         </div>
 
@@ -672,9 +676,9 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
             <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
             <input
               type="text"
-              placeholder="بحث في المتاجر المرتبطة..."
+              placeholder="Search linked stores..."
               className="glass-card"
-              style={{ width: '100%', padding: '0.7rem 2.2rem 0.7rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'right', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '0.7rem 2.2rem 0.7rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'left', fontSize: '0.85rem' }}
               value={searchStoreList}
               onChange={e => setSearchStoreList(e.target.value)}
             />
@@ -697,16 +701,16 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
           {storesWithOffersList.length === 0 && (
             <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-dim)' }}>
               <Store size={48} style={{ marginBottom: '1rem', opacity: 0.15 }} />
-              <p style={{ fontSize: '0.95rem', marginBottom: '1rem' }}>لا توجد متاجر مرتبطة بعروض</p>
+              <p style={{ fontSize: '0.95rem', marginBottom: '1rem' }}>No stores linked to offers found</p>
               <button className="btn-primary" onClick={() => setIsAssignOpen(true)}>
-                <Gift size={16} /> إضافة عرض إلى ستور
+                <Gift size={16} /> Assign Offer to Store
               </button>
             </div>
           )}
 
           {filteredStoresList.length === 0 && storesWithOffersList.length > 0 && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-              <p>لا توجد نتائج للبحث</p>
+              <p>No search results</p>
             </div>
           )}
         </div>
@@ -726,7 +730,7 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 className="gradient-text" style={{ margin: 0, fontSize: '1.15rem' }}>
-                  {isEditing ? 'تعديل العرض' : 'إضافة عرض جديد'}
+                  {isEditing ? 'Edit Offer' : 'Add New Offer'}
                 </h2>
                 <button onClick={() => setIsAddOfferOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
                   <X size={22} />
@@ -735,19 +739,19 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
 
               <form onSubmit={handleSubmitOffer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div className="form-group">
-                  <label>اسم العرض *</label>
+                  <label>Offer Title *</label>
                   <input
                     type="text" required autoFocus
-                    placeholder="مثال: تاك، ملتي جويس، خصم 20%..."
+                    placeholder="e.g., Take, Multi Juice, 20% Discount..."
                     value={form.title}
                     onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>وصف العرض</label>
+                  <label>Offer Description</label>
                   <textarea
-                    placeholder="وصف مختصر عن العرض..."
+                    placeholder="Short description of the offer..."
                     rows={3}
                     style={{
                       width: '100%', padding: '0.875rem', borderRadius: '12px',
@@ -761,10 +765,10 @@ const Offers = ({ offers, stores = [], storeOffers = [], onAddOffer, onUpdateOff
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
                   <button type="submit" className="btn-primary" style={{ flex: 2, padding: '0.9rem', justifyContent: 'center' }}>
-                    {isEditing ? 'حفظ التعديلات' : 'إضافة العرض'}
+                    {isEditing ? 'Save Changes' : 'Add Offer'}
                   </button>
                   <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setIsAddOfferOpen(false)}>
-                    إلغاء
+                    Cancel
                   </button>
                 </div>
               </form>

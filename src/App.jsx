@@ -24,6 +24,7 @@ const Offers = React.lazy(() => import('./components/Offers'));
 const MenuExtractor = React.lazy(() => import('./components/MenuExtractor'));
 
 import ActivityForm from './components/ActivityForm';
+import { getCommercialCycle } from './utils/commercialCycle';
 
 function App() {
   const [activeTab, setActiveTab] = useState(localStorage.getItem('mp_active_tab') || 'dashboard');
@@ -66,18 +67,43 @@ function App() {
       if (s.deleted_at) continue;
       if (s.is_active) totalStores++; else inactiveStores++;
     }
-    let pendingTasks = 0, completedTasks = 0;
+    
+    // Global stats for the app (historical)
+    let globalPendingTasks = 0, globalCompletedTasks = 0;
     for (const a of activities) {
-      if (a.is_resolved) completedTasks++; else pendingTasks++;
+      if (a.is_resolved) globalCompletedTasks++; else globalPendingTasks++;
     }
+
     return {
       totalStores,
       inactiveStores,
       totalActivities: activities.length,
-      pendingTasks,
-      completedTasks,
+      pendingTasks: globalPendingTasks,
+      completedTasks: globalCompletedTasks,
     };
   }, [stores, activities]);
+
+  // Commercial Cycle Specific Activities
+  const cycleActivities = useMemo(() => {
+    const { start, end } = getCommercialCycle(new Date());
+    return activities.filter(a => {
+      const d = new Date(a.created_at);
+      return d >= start && d <= end;
+    });
+  }, [activities]);
+
+  // Stats specific to the current commercial cycle for the Dashboard
+  const cycleStats = useMemo(() => {
+    let pending = 0, completed = 0;
+    for (const a of cycleActivities) {
+      if (a.is_resolved) completed++; else pending++;
+    }
+    return {
+      total: cycleActivities.length,
+      pending,
+      completed
+    };
+  }, [cycleActivities]);
 
   const deletedStores = useMemo(
     () => stores.filter(s => !!s.deleted_at),
@@ -244,16 +270,16 @@ const toggleStoreStatus = useCallback(async (id) => {
     try {
       const newOffer = await offersService.create(offer);
       setOffers(prev => [newOffer, ...prev]);
-      notify('success', 'تم إضافة العرض');
-    } catch { notify('error', 'فشل إضافة العرض'); }
+      notify('success', 'Offer added successfully');
+    } catch { notify('error', 'Failed to add offer'); }
   }, [notify]);
 
   const updateOffer = useCallback(async (id, updates) => {
     try {
       const updated = await offersService.update(id, updates);
       setOffers(prev => prev.map(o => o.id === id ? updated : o));
-      notify('success', 'تم تحديث العرض');
-    } catch { notify('error', 'فشل التحديث'); }
+      notify('success', 'Offer updated successfully');
+    } catch { notify('error', 'Failed to update'); }
   }, [notify]);
 
   const deleteOffer = useCallback(async (id) => {
@@ -261,22 +287,22 @@ const toggleStoreStatus = useCallback(async (id) => {
       await offersService.delete(id);
       setOffers(prev => prev.filter(o => o.id !== id));
       setStoreOffers(prev => prev.filter(so => so.offer_id !== id));
-      notify('success', 'تم حذف العرض');
-    } catch { notify('error', 'فشل الحذف'); }
+      notify('success', 'Offer deleted successfully');
+    } catch { notify('error', 'Failed to delete'); }
   }, [notify]);
 
   const assignStoreOffer = useCallback(async (storeId, offerId) => {
     try {
       const row = await storeOffersService.assign(storeId, offerId);
       setStoreOffers(prev => [...prev, row]);
-    } catch { notify('error', 'فشل ربط المتجر بالعرض'); }
+    } catch { notify('error', 'Failed to link store to offer'); }
   }, [notify]);
 
   const unassignStoreOffer = useCallback(async (storeId, offerId) => {
     try {
       await storeOffersService.unassign(storeId, offerId);
       setStoreOffers(prev => prev.filter(so => !(so.store_id === storeId && so.offer_id === offerId)));
-    } catch { notify('error', 'فشل فك الربط'); }
+    } catch { notify('error', 'Failed to unlink store'); }
   }, [notify]);
 
   const bulkAssignStoreOffer = useCallback(async (storeIds, offerId) => {
@@ -298,8 +324,8 @@ const toggleStoreStatus = useCallback(async (id) => {
         const kept = prev.filter(so => !(so.offer_id === offerId && toRemove.includes(so.store_id)));
         return [...kept, ...newRows];
       });
-      notify('success', `تم تحديث المتاجر المرتبطة (${storeIds.length})`);
-    } catch { notify('error', 'فشل التحديث'); }
+      notify('success', `Linked stores updated successfully (${storeIds.length})`);
+    } catch { notify('error', 'Failed to update'); }
   }, [notify, storeOffers]);
 
   const addOutcome = useCallback(async (name) => { 
@@ -546,7 +572,7 @@ const toggleStoreStatus = useCallback(async (id) => {
     );
 
     switch(activeTab) {
-      case 'dashboard': return <Overview stats={stats} activities={activities} stores={stores} onNavigate={setActiveTab} />;
+      case 'dashboard': return <Overview stats={stats} cycleStats={cycleStats} activities={cycleActivities} stores={stores} onNavigate={setActiveTab} />;
       case 'stores': return (
         <StoreList 
           stores={activeStores}
@@ -571,12 +597,12 @@ const toggleStoreStatus = useCallback(async (id) => {
           onUnassignOffer={unassignStoreOffer}
         />
       );
-      case 'activities': return <ActivityLog activities={activities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
+      case 'activities': return <ActivityLog activities={cycleActivities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
       case 'stats': return <Stats calls={activities} outcomes={outcomes} stores={stores} />;
       case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} onAddStore={addStore} />;
       case 'target': return <TargetSection activities={activities} stores={stores} storeOffers={storeOffers} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
-      case 'offers': return <Offers offers={offers} stores={activeStores} storeOffers={storeOffers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} onBulkAssign={bulkAssignStoreOffer} onUnassignOffer={unassignStoreOffer} />;
+      case 'offers': return <Offers offers={offers} stores={activeStores} storeOffers={storeOffers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} onAssignOffer={assignStoreOffer} onBulkAssign={bulkAssignStoreOffer} onUnassignOffer={unassignStoreOffer} />;
       case 'menu-extractor': return <MenuExtractor />;
       case 'recycle': return (
         <RecycleBin 
@@ -607,7 +633,7 @@ const toggleStoreStatus = useCallback(async (id) => {
           onRequestPermission={requestPermission}
         />
       );
-      default: return <Overview stats={stats} activities={activities} stores={stores} />;
+      default: return <Overview stats={stats} cycleStats={cycleStats} activities={cycleActivities} stores={stores} />;
     }
   };
 
@@ -617,6 +643,7 @@ const toggleStoreStatus = useCallback(async (id) => {
         activeTab={activeTab}
         setActiveTab={(tab) => { setActiveTab(tab); setIsSidebarOpen(false); }}
         stats={stats}
+        cycleStats={cycleStats}
         theme={theme}
         setTheme={setTheme}
         onSelectStore={handleSelectStore}

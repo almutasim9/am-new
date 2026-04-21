@@ -222,9 +222,9 @@ const StoreProfile = ({
               {/* Active Offer Badges */}
               {(() => {
                 const OFFER_COLORS = {
-                  'خصم على التوصيل': '#3b82f6', 'خصم على الطلب': '#8b5cf6',
-                  'كاشباك': '#10b981', 'عرض مجاني': '#f59e0b',
-                  'عرض خاص': '#ec4899', 'عام': '#6b7280',
+                  'Delivery Discount': '#3b82f6', 'Order Discount': '#8b5cf6',
+                  'Cashback': '#10b981', 'Freebie': '#f59e0b',
+                  'Special Offer': '#ec4899', 'General': '#6b7280',
                 };
                 const myOfferIds = storeOffers
                   .filter(so => so.store_id === store.id)
@@ -255,7 +255,7 @@ const StoreProfile = ({
                           }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
-                          title="إزالة العرض"
+                          title="Remove Offer"
                         >
                           <X size={11} strokeWidth={3} />
                         </button>
@@ -319,7 +319,6 @@ const StoreProfile = ({
                 <div className="dialog-header-v2">
                   <div className="icon-badge-danger"><ShieldOff size={26} /></div>
                   <h2>Confirm Closure</h2>
-                  <h3>تأكيد إغلاق المتجر</h3>
                   <p>Please select a reason for closing this partner account.</p>
                 </div>
                 <div className="reason-selector-premium">
@@ -340,7 +339,7 @@ const StoreProfile = ({
                   )}
                 </div>
                 <div className="dialog-footer-v2">
-                  <button className="btn-secondary-v2" onClick={() => setShowClosureDialog(false)}>Cancel / إلغاء</button>
+                  <button className="btn-secondary-v2" onClick={() => setShowClosureDialog(false)}>Cancel</button>
                   <button className="btn-danger-premium" disabled={!selectedClosureReasonId || isProcessingClosure} onClick={handleConfirmStoreClosure}>
                     {isProcessingClosure ? <div className="loader-small"></div> : <>Confirm Closure</>}
                   </button>
@@ -361,12 +360,11 @@ const StoreProfile = ({
                 <div className="dialog-header-v2">
                   <div className="icon-badge-danger" style={{ background: '#fef2f2', color: '#ef4444' }}><Trash2 size={26} /></div>
                   <h2>Move to Recycle Bin</h2>
-                  <h3>نقل إلى سلة المهملات</h3>
                   <p>Are you sure? This store will be hidden from reports and the main list.</p>
                 </div>
                 <div className="dialog-footer-v2">
-                  <button className="btn-secondary-v2" onClick={() => setShowDeleteDialog(false)}>Cancel / إلغاء</button>
-                  <button className="btn-danger-premium" onClick={handleConfirmDelete}>Archive Now / أرشفة الآن</button>
+                  <button className="btn-secondary-v2" onClick={() => setShowDeleteDialog(false)}>Cancel</button>
+                  <button className="btn-danger-premium" onClick={handleConfirmDelete}>Archive Now</button>
                 </div>
               </motion.div>
             </motion.div>
@@ -411,22 +409,22 @@ const StoreProfile = ({
                 <div className="perf-tab-row">
                   {['monthly', 'commercial', 'yesterday'].map(tab => (
                     <button key={tab} className={`perf-tab-btn ${activePerfTab === tab ? 'active' : ''}`} onClick={() => setActivePerfTab(tab)}>
-                      {tab === 'monthly' ? 'شهري' : tab === 'commercial' ? 'تجاري' : 'البارحة'}
+                      {tab === 'monthly' ? 'Monthly' : tab === 'commercial' ? 'Commercial' : 'Yesterday'}
                     </button>
                   ))}
                 </div>
               </div>
               {!st ? (
-                <div className="no-data-state">لا توجد بيانات لهذه الفترة</div>
+                <div className="no-data-state">No data for this period</div>
               ) : (
                 <>
                   <div className="sales-grid">
                     <div className="sales-big-card green-accent">
-                      <span className="sales-big-label">إجمالي المبيعات (GMV)</span>
+                      <span className="sales-big-label">Total Sales (GMV)</span>
                       <span className="sales-big-val green">{Number(st.gmv || 0).toLocaleString()} <small>IQD</small></span>
                     </div>
                     <div className="sales-big-card blue-accent">
-                      <span className="sales-big-label">الطلبات (Orders)</span>
+                      <span className="sales-big-label">Orders</span>
                       <span className="sales-big-val blue">{Number(st.orders || 0).toLocaleString()}</span>
                     </div>
                   </div>
@@ -469,7 +467,7 @@ const StoreProfile = ({
             <div className="info-fields-grid">
               <InfoField label="Primary Contact" icon={User} value={store.owner_name} field="owner_name" placeholder="Contact Name" />
               <InfoField label="Business Phone" icon={Phone} value={store.phone} field="phone" placeholder="Phone Number" />
-              <InfoField label="Brand ID / رقم البراند" icon={Bookmark} value={store.brand_id} field="brand_id" placeholder="Brand Code" />
+              <InfoField label="Brand ID" icon={Bookmark} value={store.brand_id} field="brand_id" placeholder="Brand Code" />
               <InfoField label="Zone / Region" icon={MapPin} value={store.zone} field="zone" placeholder="Assign Zone" />
               <InfoField label="Area / Neighborhood" icon={TrendingUp} value={store.area} field="area" placeholder="Specific Area" />
             </div>
@@ -488,11 +486,11 @@ const StoreProfile = ({
 
           {/* Contacts */}
           <div className="section-card glass-card">
-            <h3 className="section-card-title"><ShieldCheck size={14} /> Team Contacts / سجل التواصل</h3>
+            <h3 className="section-card-title"><ShieldCheck size={14} /> Team Contacts</h3>
             <div className="contacts-stack">
-              <ContactRow label="Cashier (كاشير)" icon={Smartphone} value={store.cashier_phone} field="cashier_phone" />
-              <ContactRow label="Floor Manager (مدير صالة)" icon={User} value={store.restaurant_manager_phone} field="restaurant_manager_phone" />
-              <ContactRow label="Accounting (حسابات)" icon={Database} value={store.accounts_manager_phone} field="accounts_manager_phone" />
+              <ContactRow label="Cashier" icon={Smartphone} value={store.cashier_phone} field="cashier_phone" />
+              <ContactRow label="Floor Manager" icon={User} value={store.restaurant_manager_phone} field="restaurant_manager_phone" />
+              <ContactRow label="Accounting" icon={Database} value={store.accounts_manager_phone} field="accounts_manager_phone" />
             </div>
           </div>
         </div>

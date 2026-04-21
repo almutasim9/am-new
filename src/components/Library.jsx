@@ -51,12 +51,12 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
     <div className="section-container">
       <div className="section-header">
         <div>
-          <h2 className="gradient-text">المكتبة (The Library)</h2>
-          <p className="stat-label">أهم الروابط الي تستخدمها يومياً بشكل سريع</p>
+          <h2 className="gradient-text">The Library</h2>
+          <p className="stat-label">Important links you use daily for quick access</p>
         </div>
         <button className="btn-primary" onClick={() => openModal()}>
           <Plus size={18} style={{ marginRight: '8px' }} />
-          إضافة رابط جديد
+          Add New Link
         </button>
       </div>
 
@@ -74,7 +74,7 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
           <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder="البحث في الروابط..."
+            placeholder="Search links..."
             className="glass-card"
             style={{ padding: '0.875rem 1rem 0.875rem 2.5rem', width: '100%', border: '1px solid var(--border-color)', borderRadius: '14px', minHeight: '44px' }}
             value={searchTerm}
@@ -176,7 +176,7 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
                 </p>
               ) : (
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic', marginBottom: '12px' }}>
-                  لا توجد تفاصيل...
+                  No details provided...
                 </p>
               )}
               
@@ -215,7 +215,7 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
               }}
             >
               <ExternalLink size={18} />
-              فتح الرابط السريع
+              Open Quick Link
             </a>
           </motion.div>
         ))}
@@ -235,7 +235,7 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
               <>
                 <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>Your library is empty. Add your first link!</p>
                 <button className="btn-primary" onClick={() => openModal()}>
-                  <Plus size={18} style={{ marginRight: '8px' }} /> إضافة رابط جديد
+                  <Plus size={18} style={{ marginRight: '8px' }} /> Add New Link
                 </button>
               </>
             )}
@@ -264,7 +264,7 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 className="gradient-text" style={{ margin: 0 }}>
-                  {isEditing ? 'تعديل بيانات الرابط' : 'إضافة رابط جديد للمكتبة'}
+                  {isEditing ? 'Edit Link Details' : 'Add New Link to Library'}
                 </h2>
                 <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
                   <X size={24} />
@@ -273,17 +273,17 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div className="form-group">
-                  <label>اسم الرابط (بشكل واضح)</label>
+                  <label>Link Name</label>
                   <input 
                     type="text" 
-                    placeholder="مثال: Google Sheets - Dashboard" 
+                    placeholder="e.g. Google Sheets - Dashboard" 
                     required 
                     value={newLink.name} 
                     onChange={e => setNewLink({...newLink, name: e.target.value})} 
                   />
                 </div>
                 <div className="form-group">
-                  <label>عنوان الرابط (URL)</label>
+                  <label>Link URL</label>
                   <input 
                     type="text" 
                     placeholder="https://example.com" 
@@ -293,9 +293,9 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
                   />
                 </div>
                 <div className="form-group">
-                  <label>التفاصيل والملاحظات (اختياري)</label>
+                  <label>Description & Notes (Optional)</label>
                   <textarea 
-                    placeholder="اكتب هنا أي ملاحظات إضافية بخصوص هذا الرابط..." 
+                    placeholder="Write any additional notes about this link here..." 
                     rows={4}
                     style={{ 
                       width: '100%', 
@@ -314,10 +314,10 @@ const Library = ({ links, libraryError, onAddLink, onUpdateLink, onDeleteLink })
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button type="submit" className="btn-primary" style={{ flex: 2, padding: '1rem' }}>
-                    {isEditing ? 'حفظ التعديلات' : 'تأكيد الإضافة'}
+                    {isEditing ? 'Save Changes' : 'Confirm Add'}
                   </button>
                   <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>
-                    إلغاء
+                    Cancel
                   </button>
                 </div>
               </form>

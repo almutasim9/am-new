@@ -268,7 +268,7 @@ const StoreList = ({
               </div>
               
               <div className="header-actions">
-                <button className="btn-secondary sm" onClick={handleExportFieldList} title="تصدير قائمة الاتصال الميداني">
+                <button className="btn-secondary sm" onClick={handleExportFieldList} title="Export Field Contact List">
                   <FileDown size={14} /> <span className="desktop-only text-sm">Field List</span>
                 </button>
                 <button className="btn-secondary sm" onClick={handleDownloadTemplate}>
@@ -422,9 +422,9 @@ const StoreList = ({
                                         const off = offerById.get(oid);
                                         if (!off) return null;
                                         const OFFER_COLORS = {
-                                          'خصم على التوصيل': '#3b82f6', 'خصم على الطلب': '#8b5cf6',
-                                          'كاشباك': '#10b981', 'عرض مجاني': '#f59e0b',
-                                          'عرض خاص': '#ec4899', 'عام': '#6b7280',
+                                          'Delivery Discount': '#3b82f6', 'Order Discount': '#8b5cf6',
+                                          'Cashback': '#10b981', 'Freebie': '#f59e0b',
+                                          'Special Offer': '#ec4899', 'General': '#6b7280',
                                         };
                                         const c = OFFER_COLORS[off.category] || '#6b7280';
                                         return (
@@ -522,7 +522,7 @@ const StoreList = ({
                               if (activeOffs.length === 0) return null;
                               return (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#3b82f6', fontWeight: 700 }}>
-                                  <Gift size={12} /> {activeOffs.length} عرض نشط
+                                  <Gift size={12} /> {activeOffs.length} active offer{activeOffs.length > 1 ? 's' : ''}
                                 </span>
                               );
                             })()}
@@ -818,15 +818,15 @@ const StoreList = ({
             exit={{ scale: 0.93, opacity: 0 }}
           >
             <h3>Bulk Edit — {selectedIds.length} Stores</h3>
-            <p>اختر فئة أو زون أو الاثنين معاً — البيانات الفارغة ما تتغير</p>
-            <label>Category / الفئة</label>
+            <p>Choose category, zone, or both — empty fields will not change.</p>
+            <label>Category</label>
             <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
-              <option value="">— لا تغيير —</option>
+              <option value="">— No Change —</option>
               {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
-            <label>Zone / الزون</label>
+            <label>Zone</label>
             <select value={bulkZone} onChange={e => setBulkZone(e.target.value)}>
-              <option value="">— لا تغيير —</option>
+              <option value="">— No Change —</option>
               {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
             </select>
             <div className="bulk-modal-actions">
