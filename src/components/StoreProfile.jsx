@@ -5,7 +5,7 @@ import {
   ArrowLeft, Pencil, Check, X, Phone, User, Database, Globe, MapPin,
   ExternalLink, TrendingUp, ShieldCheck,
   Smartphone, Activity, Trash2, Target, Hash, AlertCircle,
-  Power, ShieldOff, Info, Copy, Bookmark, MessageCircle, Plus
+  Power, ShieldOff, Info, Copy, Bookmark, MessageCircle, Plus, Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -17,12 +17,15 @@ const StoreProfile = ({
   store,
   activities,
   outcomes,
+  offers = [],
+  storeOffers = [],
   closureReasons = [],
   onClose,
   onUpdate,
   onDeleteStore,
   onAddActivity,
-  onNotify
+  onNotify,
+  onUnassignOffer
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -216,6 +219,51 @@ const StoreProfile = ({
                 <span className="status-dot"></span>
                 {store.is_active ? 'Active' : 'Inactive'}
               </span>
+              {/* Active Offer Badges */}
+              {(() => {
+                const OFFER_COLORS = {
+                  'خصم على التوصيل': '#3b82f6', 'خصم على الطلب': '#8b5cf6',
+                  'كاشباك': '#10b981', 'عرض مجاني': '#f59e0b',
+                  'عرض خاص': '#ec4899', 'عام': '#6b7280',
+                };
+                const myOfferIds = storeOffers
+                  .filter(so => so.store_id === store.id)
+                  .map(so => so.offer_id);
+                const activeOffs = offers.filter(o =>
+                  myOfferIds.includes(o.id) &&
+                  o.is_active &&
+                  !(o.end_date && new Date(o.end_date) < new Date())
+                );
+                if (activeOffs.length === 0) return null;
+                return activeOffs.map(off => {
+                  const c = OFFER_COLORS[off.category] || '#6b7280';
+                  return (
+                    <span key={off.id} className="sp-badge" style={{
+                      background: c + '14', color: c, border: `1px solid ${c}30`,
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      cursor: 'default',
+                    }} title={off.title}>
+                      <Gift size={10} />
+                      <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{off.title}</span>
+                      {onUnassignOffer && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onUnassignOffer(store.id, off.id); }}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: c, padding: '0 0 0 2px', display: 'flex', alignItems: 'center',
+                            opacity: 0.6, transition: 'opacity 0.15s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+                          title="إزالة العرض"
+                        >
+                          <X size={11} strokeWidth={3} />
+                        </button>
+                      )}
+                    </span>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>

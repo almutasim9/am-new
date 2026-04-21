@@ -4,7 +4,7 @@ import {
   Plus, Search, MapPin, Phone, User, Activity, FileDown, FileUp, 
   Loader2, X, Layers, Globe, Compass, ExternalLink, Trash2, 
   Info, Store, Copy, ChevronRight, MessageCircle, Smartphone,
-  LayoutGrid, List
+  LayoutGrid, List, Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreProfile from './StoreProfile';
@@ -15,6 +15,8 @@ const StoreList = ({
   outcomes,
   categories,
   zones,
+  offers = [],
+  storeOffers = [],
   selectedStoreId,
   onSelectStore,
   onAddStore,
@@ -25,7 +27,8 @@ const StoreList = ({
   onNotify,
   onAddActivity,
   closureReasons,
-  onQuickLog
+  onQuickLog,
+  onUnassignOffer
 }) => {
   const PAGE_SIZE = 20;
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +36,7 @@ const StoreList = ({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterZone, setFilterZone] = useState('');
   const [filterStatus, setFilterStatus] = useState('active');
+  const [filterOfferStatus, setFilterOfferStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -57,6 +61,30 @@ const StoreList = ({
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  // Per-store offer data
+  const storeOfferMap = useMemo(() => {
+    const map = {};
+    for (const so of storeOffers) {
+      if (!map[so.store_id]) map[so.store_id] = [];
+      map[so.store_id].push(so.offer_id);
+    }
+    return map;
+  }, [storeOffers]);
+
+  const activeOfferIds = useMemo(() => {
+    const s = new Set();
+    for (const o of offers) {
+      if (o.is_active && !(o.end_date && new Date(o.end_date) < new Date())) s.add(o.id);
+    }
+    return s;
+  }, [offers]);
+
+  const offerById = useMemo(() => {
+    const m = new Map();
+    for (const o of offers) m.set(o.id, o);
+    return m;
+  }, [offers]);
+
   const filteredStores = useMemo(() =>
     stores.filter(s => {
       const matchesSearch =
@@ -66,9 +94,13 @@ const StoreList = ({
       const matchesCategory = !filterCategory || s.category === filterCategory;
       const matchesZone = !filterZone || s.zone === filterZone;
       const matchesStatus = filterStatus === 'all' ? true : (filterStatus === 'active' ? s.is_active === true : !s.is_active);
-      return matchesSearch && matchesCategory && matchesZone && matchesStatus;
+      const storeActiveOffers = (storeOfferMap[s.id] || []).filter(oid => activeOfferIds.has(oid));
+      const matchesOfferFilter = !filterOfferStatus ||
+        (filterOfferStatus === 'has-offer' && storeActiveOffers.length > 0) ||
+        (filterOfferStatus === 'no-offer' && storeActiveOffers.length === 0);
+      return matchesSearch && matchesCategory && matchesZone && matchesStatus && matchesOfferFilter;
     }),
-  [stores, debouncedSearch, filterCategory, filterZone, filterStatus]);
+  [stores, debouncedSearch, filterCategory, filterZone, filterStatus, filterOfferStatus, storeOfferMap, activeOfferIds]);
 
   const totalPages = Math.ceil(filteredStores.length / PAGE_SIZE);
   const pagedStores = filteredStores.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -286,6 +318,14 @@ const StoreList = ({
                     {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
+                <div className="filter-pill-v2">
+                  <Gift size={14} />
+                  <select value={filterOfferStatus} onChange={(e) => handleFilterChange(setFilterOfferStatus)(e.target.value)}>
+                    <option value="">All Offers</option>
+                    <option value="has-offer">Has Offer</option>
+                    <option value="no-offer">No Offer</option>
+                  </select>
+                </div>
                 <button className="btn-icon-v2" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
                   {viewMode === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
                 </button>
@@ -368,10 +408,42 @@ const StoreList = ({
                               </div>
                             </td>
                             <td className="category-cell">
-                              <span className="category-tag">
-                                <Layers size={12} />
-                                {store.category}
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span className="category-tag">
+                                  <Layers size={12} />
+                                  {store.category}
+                                </span>
+                                {(() => {
+                                  const activeOffs = (storeOfferMap[store.id] || []).filter(oid => activeOfferIds.has(oid));
+                                  if (activeOffs.length === 0) return null;
+                                  return (
+                                    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                                      {activeOffs.slice(0, 2).map(oid => {
+                                        const off = offerById.get(oid);
+                                        if (!off) return null;
+                                        const OFFER_COLORS = {
+                                          'خصم على التوصيل': '#3b82f6', 'خصم على الطلب': '#8b5cf6',
+                                          'كاشباك': '#10b981', 'عرض مجاني': '#f59e0b',
+                                          'عرض خاص': '#ec4899', 'عام': '#6b7280',
+                                        };
+                                        const c = OFFER_COLORS[off.category] || '#6b7280';
+                                        return (
+                                          <span key={oid} style={{
+                                            padding: '1px 6px', borderRadius: '999px', fontSize: '0.6rem', fontWeight: 700,
+                                            background: c + '14', color: c, border: `1px solid ${c}30`,
+                                            maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                          }} title={off.title}>
+                                            🎁 {off.title}
+                                          </span>
+                                        );
+                                      })}
+                                      {activeOffs.length > 2 && (
+                                        <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-dim)' }}>+{activeOffs.length - 2}</span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </td>
                             <td className="manager-cell">
                               <div className="manager-info-v2">
@@ -445,6 +517,15 @@ const StoreList = ({
                           <div className="card-meta">
                             <span className="category-tag"><Layers size={12} /> {store.category}</span>
                             <span className="manager-phone"><Smartphone size={12} /> {store.phone}</span>
+                            {(() => {
+                              const activeOffs = (storeOfferMap[store.id] || []).filter(oid => activeOfferIds.has(oid));
+                              if (activeOffs.length === 0) return null;
+                              return (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#3b82f6', fontWeight: 700 }}>
+                                  <Gift size={12} /> {activeOffs.length} عرض نشط
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                         <div className="card-footer">
@@ -489,12 +570,15 @@ const StoreList = ({
               store={stores.find(s => s.id === selectedStoreId)} 
               activities={activities} 
               outcomes={outcomes} 
+              offers={offers}
+              storeOffers={storeOffers}
               closureReasons={closureReasons}
               onClose={() => onSelectStore(null)}
               onUpdate={onUpdateStore}
               onDeleteStore={onDeleteStore}
               onAddActivity={onAddActivity}
               onNotify={onNotify}
+              onUnassignOffer={onUnassignOffer}
             />
           </motion.div>
         )}

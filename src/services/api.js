@@ -240,6 +240,33 @@ export const offersService = {
   }
 };
 
+export const storeOffersService = {
+  async getAll() {
+    const { data, error } = await supabase.from('store_offers').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  async assign(storeId, offerId) {
+    const { data, error } = await supabase.from('store_offers').insert([{ store_id: storeId, offer_id: offerId }]).select();
+    if (error) throw error;
+    return data[0];
+  },
+  async unassign(storeId, offerId) {
+    const { error } = await supabase.from('store_offers').delete().eq('store_id', storeId).eq('offer_id', offerId);
+    if (error) throw error;
+  },
+  async bulkAssign(storeIds, offerId) {
+    const rows = storeIds.map(sid => ({ store_id: sid, offer_id: offerId }));
+    const { data, error } = await supabase.from('store_offers').upsert(rows, { onConflict: 'store_id,offer_id' }).select();
+    if (error) throw error;
+    return data;
+  },
+  async bulkUnassign(storeIds, offerId) {
+    const { error } = await supabase.from('store_offers').delete().eq('offer_id', offerId).in('store_id', storeIds);
+    if (error) throw error;
+  }
+};
+
 export const targetService = {
   async getForMonth(monthYear) {
     const { data, error } = await supabase.from('targets').select('*').eq('month_year', monthYear).maybeSingle();
@@ -247,7 +274,7 @@ export const targetService = {
     return data;
   },
   async save(target) {
-    validate({ weekly_goal: { value: target.weekly_goal, required: true } });
+    validate({ monthly_goal: { value: target.monthly_goal, required: true } });
     const owner_id = await currentUserId();
     const { data, error } = await supabase
       .from('targets')

@@ -115,8 +115,11 @@ CREATE TABLE library_links (
 CREATE TABLE targets (
   id              SERIAL PRIMARY KEY,
   month_year      VARCHAR(7) NOT NULL UNIQUE,
-  weekly_goal     INTEGER    NOT NULL DEFAULT 50,
+  monthly_goal    INTEGER    NOT NULL DEFAULT 200,
   include_weekend BOOLEAN    DEFAULT FALSE,
+  highlights_target_pct        NUMERIC(5,2) NOT NULL DEFAULT 0,
+  discount_coverage_target_pct NUMERIC(5,2) NOT NULL DEFAULT 0,
+  discount_ratio_target_pct    NUMERIC(5,2) NOT NULL DEFAULT 0,
   created_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

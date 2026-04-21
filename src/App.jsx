@@ -10,7 +10,7 @@ const Library = React.lazy(() => import('./components/Library'));
 const Settings = React.lazy(() => import('./components/Settings'));
 const RecycleBin = React.lazy(() => import('./components/RecycleBin'));
 import InstallPrompt from './components/InstallPrompt';
-import { storeService, activityService, settingsService, libraryService, offersService } from './services/api';
+import { storeService, activityService, settingsService, libraryService, offersService, storeOffersService } from './services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { requestNotificationPermission, showNotification, getOverdueActivities } from './services/notificationService';
 import { supabase } from './supabaseClient';
@@ -48,6 +48,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [libraryError, setLibraryError] = useState(false);
   const [offers, setOffers] = useState([]);
+  const [storeOffers, setStoreOffers] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('mp_sidebar_collapsed') === 'true');
   const lastNotifiedRef = useRef(new Set());
@@ -122,6 +123,12 @@ function App() {
         setOffers(o || []);
       } catch {
         setOffers([]);
+      }
+      try {
+        const so = await storeOffersService.getAll();
+        setStoreOffers(so || []);
+      } catch {
+        setStoreOffers([]);
       }
     } catch {
       notify('error', 'Failed to synchronize core data');
@@ -253,9 +260,47 @@ const toggleStoreStatus = useCallback(async (id) => {
     try {
       await offersService.delete(id);
       setOffers(prev => prev.filter(o => o.id !== id));
+      setStoreOffers(prev => prev.filter(so => so.offer_id !== id));
       notify('success', 'تم حذف العرض');
     } catch { notify('error', 'فشل الحذف'); }
   }, [notify]);
+
+  const assignStoreOffer = useCallback(async (storeId, offerId) => {
+    try {
+      const row = await storeOffersService.assign(storeId, offerId);
+      setStoreOffers(prev => [...prev, row]);
+    } catch { notify('error', 'فشل ربط المتجر بالعرض'); }
+  }, [notify]);
+
+  const unassignStoreOffer = useCallback(async (storeId, offerId) => {
+    try {
+      await storeOffersService.unassign(storeId, offerId);
+      setStoreOffers(prev => prev.filter(so => !(so.store_id === storeId && so.offer_id === offerId)));
+    } catch { notify('error', 'فشل فك الربط'); }
+  }, [notify]);
+
+  const bulkAssignStoreOffer = useCallback(async (storeIds, offerId) => {
+    try {
+      // Remove all existing assignments for this offer, then assign selected ones
+      const currentAssigned = storeOffers.filter(so => so.offer_id === offerId).map(so => so.store_id);
+      const toRemove = currentAssigned.filter(id => !storeIds.includes(id));
+      const toAdd = storeIds.filter(id => !currentAssigned.includes(id));
+
+      if (toRemove.length > 0) {
+        await storeOffersService.bulkUnassign(toRemove, offerId);
+      }
+      let newRows = [];
+      if (toAdd.length > 0) {
+        newRows = await storeOffersService.bulkAssign(toAdd, offerId);
+      }
+
+      setStoreOffers(prev => {
+        const kept = prev.filter(so => !(so.offer_id === offerId && toRemove.includes(so.store_id)));
+        return [...kept, ...newRows];
+      });
+      notify('success', `تم تحديث المتاجر المرتبطة (${storeIds.length})`);
+    } catch { notify('error', 'فشل التحديث'); }
+  }, [notify, storeOffers]);
 
   const addOutcome = useCallback(async (name) => { 
     try { 
@@ -419,6 +464,7 @@ const toggleStoreStatus = useCallback(async (id) => {
     const zoneSub = supabase.channel('zones').on('postgres_changes', { event: '*', schema: 'public', table: 'zones' }, (p) => handleRealtime(p, setZones)).subscribe();
     const categorySub = supabase.channel('categories').on('postgres_changes', { event: '*', schema: 'public', table: 'store_categories' }, (p) => handleRealtime(p, setCategories)).subscribe();
     const librarySub = supabase.channel('library-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'library_links' }, (p) => handleRealtime(p, setLinks)).subscribe();
+    const storeOffersSub = supabase.channel('store-offers').on('postgres_changes', { event: '*', schema: 'public', table: 'store_offers' }, (p) => handleRealtime(p, setStoreOffers)).subscribe();
 
     // Listen for custom activity logging events from deeply nested components
     const handleCustomAddActivity = (e) => {
@@ -433,6 +479,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       supabase.removeChannel(categorySub);
       supabase.removeChannel(outcomeSub);
       supabase.removeChannel(librarySub);
+      supabase.removeChannel(storeOffersSub);
       window.removeEventListener('add-activity', handleCustomAddActivity);
     };
   }, [addActivity, fetchInitialData, handleRealtime]);
@@ -507,6 +554,8 @@ const toggleStoreStatus = useCallback(async (id) => {
           outcomes={outcomes}
           categories={categories}
           zones={zones}
+          offers={offers}
+          storeOffers={storeOffers}
           selectedStoreId={selectedStoreId}
           onSelectStore={handleSelectStore}
           onQuickLog={setQuickLogStore}
@@ -519,14 +568,15 @@ const toggleStoreStatus = useCallback(async (id) => {
           onNotify={notify}
           onAddActivity={addActivity}
           closureReasons={closureReasons}
+          onUnassignOffer={unassignStoreOffer}
         />
       );
       case 'activities': return <ActivityLog activities={activities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
       case 'stats': return <Stats calls={activities} outcomes={outcomes} stores={stores} />;
       case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} onAddStore={addStore} />;
-      case 'target': return <TargetSection activities={activities} />;
+      case 'target': return <TargetSection activities={activities} stores={stores} storeOffers={storeOffers} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
-      case 'offers': return <Offers offers={offers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} />;
+      case 'offers': return <Offers offers={offers} stores={activeStores} storeOffers={storeOffers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} onBulkAssign={bulkAssignStoreOffer} onUnassignOffer={unassignStoreOffer} />;
       case 'menu-extractor': return <MenuExtractor />;
       case 'recycle': return (
         <RecycleBin 

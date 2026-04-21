@@ -42,11 +42,9 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
 
   const totalGMV = stores.reduce((acc, s) => acc + Number(getStats(s).gmv || 0), 0);
   const totalOrders = stores.reduce((acc, s) => acc + Number(getStats(s).orders || 0), 0);
-  const totalDiscount = stores.reduce((acc, s) => acc + Number(getStats(s).discount_amount || 0), 0);
+  const totalDiscount = stores.reduce((acc, s) => acc + Number(getStats(s).total_mv || 0), 0);
   
-  const avgRating = performingStores.length > 0 
-    ? (performingStores.reduce((acc, curr) => acc + Number(getStats(curr).ratings || 0), 0) / performingStores.length).toFixed(1) 
-    : 0;
+  const totalHighlights = stores.reduce((acc, s) => acc + Number(getStats(s).highlights || 0), 0);
   
   const discountRatio = totalGMV > 0 ? ((totalDiscount / totalGMV) * 100).toFixed(1) : 0;
 
@@ -100,6 +98,7 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
       stores.forEach(s => {
         updatesMap[s.id] = {
           id: s.id,
+          name: s.name,
           performance_data: { monthly: {}, commercial: {}, yesterday: {} },
           // Reset root level metrics as well
           orders: null, gmv: null, ratings: null, avg_cart: null, 
@@ -456,8 +455,8 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
             <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>{discountRatio}%</h4>
           </div>
           <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
-            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><Star size={16} style={{ display: 'inline' }} /> متوسط التقييمات</p>
-            <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b' }}>{avgRating}</h4>
+            <p className="stat-label" style={{ marginBottom: '0.5rem' }}><Star size={16} style={{ display: 'inline' }} /> مجموع Highlights</p>
+            <h4 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b' }}>{totalHighlights.toLocaleString()}</h4>
           </div>
         </div>
 

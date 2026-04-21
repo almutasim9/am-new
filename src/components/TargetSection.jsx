@@ -1,36 +1,71 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Target, TrendingUp, AlertCircle, CheckCircle2, Settings, Loader2, Save } from 'lucide-react';
+import { Target, TrendingUp, AlertCircle, Settings, Loader2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  format, startOfWeek, endOfWeek, isWithinInterval,
-  isSameDay, eachDayOfInterval
-} from 'date-fns';
+import { format, isWithinInterval, eachDayOfInterval } from 'date-fns';
+
+// Commercial cycle: 19th of month N → 18th of month N+1.
+// Returns { start, end, cycleMonth } where cycleMonth is the yyyy-MM of the cycle's start.
+const getCommercialCycle = (now) => {
+  const start = now.getDate() >= 19
+    ? new Date(now.getFullYear(), now.getMonth(), 19)
+    : new Date(now.getFullYear(), now.getMonth() - 1, 19);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 18, 23, 59, 59, 999);
+  return { start, end, cycleMonth: format(start, 'yyyy-MM') };
+};
 import { targetService } from '../services/api';
 
 // PostgREST error code: no rows returned by .maybeSingle() when table missing
 const POSTGREST_NOT_FOUND = 'PGRST116';
 
-const TargetSection = ({ activities }) => {
+const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
   const [target, setTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ weekly_goal: 50, include_weekend: false });
+  const [editForm, setEditForm] = useState({
+    monthly_goal: 200,
+    include_weekend: false,
+    highlights_target_pct: 0,
+    discount_ratio_target_pct: 0,
+    offers_target_pct: 0
+  });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
-  const currentMonthYear = format(new Date(), 'yyyy-MM');
+  const { start: cycleStart, end: cycleEnd, cycleMonth: currentMonthYear } = useMemo(
+    () => getCommercialCycle(new Date()),
+    []
+  );
 
   const fetchTarget = useCallback(async () => {
     try {
       const data = await targetService.getForMonth(currentMonthYear);
       if (data) {
         setTarget(data);
-        setEditForm({ weekly_goal: data.weekly_goal, include_weekend: data.include_weekend });
+        setEditForm({
+          monthly_goal: data.monthly_goal,
+          include_weekend: data.include_weekend,
+          highlights_target_pct: Number(data.highlights_target_pct || 0),
+          discount_ratio_target_pct: Number(data.discount_ratio_target_pct || 0),
+          offers_target_pct: Number(data.offers_target_pct || 0)
+        });
       } else {
-        const defaultTarget = { month_year: currentMonthYear, weekly_goal: 50, include_weekend: false };
+        const defaultTarget = {
+          month_year: currentMonthYear,
+          monthly_goal: 200,
+          include_weekend: false,
+          highlights_target_pct: 0,
+          discount_ratio_target_pct: 0,
+          offers_target_pct: 0
+        };
         setTarget(defaultTarget);
-        setEditForm({ weekly_goal: 50, include_weekend: false });
+        setEditForm({
+          monthly_goal: 200,
+          include_weekend: false,
+          highlights_target_pct: 0,
+          discount_ratio_target_pct: 0,
+          offers_target_pct: 0
+        });
       }
       setError(null);
     } catch (error) {
@@ -54,8 +89,11 @@ const TargetSection = ({ activities }) => {
     try {
       const saved = await targetService.save({
         month_year: currentMonthYear,
-        weekly_goal: parseInt(editForm.weekly_goal),
-        include_weekend: editForm.include_weekend
+        monthly_goal: parseInt(editForm.monthly_goal),
+        include_weekend: editForm.include_weekend,
+        highlights_target_pct: Number(editForm.highlights_target_pct) || 0,
+        discount_ratio_target_pct: Number(editForm.discount_ratio_target_pct) || 0,
+        offers_target_pct: Number(editForm.offers_target_pct) || 0
       });
       setTarget(saved);
       setIsEditing(false);
@@ -71,44 +109,75 @@ const TargetSection = ({ activities }) => {
   const stats = useMemo(() => {
     if (!target) return null;
 
-    const now = new Date();
-    const sun = startOfWeek(now, { weekStartsOn: 0 });
-    const sat = endOfWeek(now, { weekStartsOn: 0 });
-
-    const weekCalls = activities.filter(a =>
-      isWithinInterval(new Date(a.created_at), { start: sun, end: sat })
+    const monthCalls = activities.filter(a =>
+      isWithinInterval(new Date(a.created_at), { start: cycleStart, end: cycleEnd })
     );
 
-    const todayCalls = activities.filter(a => isSameDay(new Date(a.created_at), now)).length;
-
-    // Define work days based on settings
     const isWorkDay = (date) => {
       if (target.include_weekend) return true;
       const day = date.getDay();
       return day >= 0 && day <= 4; // Sun (0) to Thu (4)
     };
 
-    const weekDays = eachDayOfInterval({ start: sun, end: sat });
-    const totalWorkDays = weekDays.filter(isWorkDay).length;
-    const workDaysPassed = weekDays.filter(d => d <= now && isWorkDay(d)).length;
+    const cycleDays = eachDayOfInterval({ start: cycleStart, end: cycleEnd });
+    const monthWorkDays = cycleDays.filter(isWorkDay).length;
 
-    const dailyTarget = totalWorkDays > 0 ? target.weekly_goal / totalWorkDays : 0;
+    const monthlyGoal = Number(target.monthly_goal || 0);
+    const monthlyProgress = monthlyGoal > 0 ? (monthCalls.length / monthlyGoal) * 100 : 0;
 
-    const weeklyProgress = target.weekly_goal > 0 ? (weekCalls.length / target.weekly_goal) * 100 : 0;
-    const status = todayCalls >= Math.ceil(dailyTarget) ? 'exceeded' : 'on-track';
-    const difference = todayCalls - dailyTarget;
+    // Commercial-sheet-based goal stats
+    const commercialStores = stores.filter(s => {
+      const gmv = Number(s.performance_data?.commercial?.gmv || 0);
+      return gmv > 0;
+    });
+    const activeCount = commercialStores.length;
+
+    const storesWithHighlights = commercialStores.filter(s =>
+      Number(s.performance_data?.commercial?.highlights || 0) > 0
+    ).length;
+
+    const totalGmv = commercialStores.reduce((acc, s) => acc + Number(s.performance_data?.commercial?.gmv || 0), 0);
+    const totalMv  = commercialStores.reduce((acc, s) => acc + Number(s.performance_data?.commercial?.total_mv || 0), 0);
+
+    const highlightsTargetPct = Number(target.highlights_target_pct || 0);
+    const discountRatioTargetPct = Number(target.discount_ratio_target_pct || 0);
+
+    const highlightsTargetCount = Math.round((highlightsTargetPct / 100) * activeCount);
+
+    const currentHighlightsPct = activeCount > 0 ? (storesWithHighlights / activeCount) * 100 : 0;
+    const currentDiscountRatioPct = totalGmv > 0 ? (totalMv / totalGmv) * 100 : 0;
+
+    // Offers Target calculation
+    const overallActiveStores = stores.filter(s => s.is_active && !s.deleted_at).length;
+    const storeOfferCounts = {};
+    storeOffers.forEach(so => {
+      storeOfferCounts[so.store_id] = (storeOfferCounts[so.store_id] || 0) + 1;
+    });
+    const storesWithTwoPlusOffers = Object.values(storeOfferCounts).filter(count => count >= 2).length;
+    
+    const offersTargetPct = Number(target.offers_target_pct || 0);
+    const offersTargetCount = Math.round((offersTargetPct / 100) * overallActiveStores);
+    const currentOffersPct = overallActiveStores > 0 ? (storesWithTwoPlusOffers / overallActiveStores) * 100 : 0;
 
     return {
-      weekTotal: weekCalls.length,
-      todayTotal: todayCalls,
-      dailyTarget: Math.round(dailyTarget),
-      difference: Math.round(difference),
-      weeklyProgress: Math.min(100, Math.round(weeklyProgress)),
-      totalWorkDays,
-      workDaysPassed,
-      status
+      monthTotal: monthCalls.length,
+      monthlyGoal: Math.round(monthlyGoal),
+      monthlyProgress: Math.min(100, Math.round(monthlyProgress)),
+      monthWorkDays,
+      activeCount,
+      storesWithHighlights,
+      highlightsTargetPct,
+      highlightsTargetCount,
+      currentHighlightsPct,
+      discountRatioTargetPct,
+      currentDiscountRatioPct,
+      overallActiveStores,
+      storesWithTwoPlusOffers,
+      offersTargetPct,
+      offersTargetCount,
+      currentOffersPct
     };
-  }, [activities, target]);
+  }, [activities, target, stores, cycleStart, cycleEnd, storeOffers]);
 
   if (loading) return (
     <div className="glass-card" style={{ padding: '3rem', display: 'flex', justifyContent: 'center' }}>
@@ -142,10 +211,10 @@ const TargetSection = ({ activities }) => {
       <div className="section-header">
         <div>
           <h2 className="gradient-text">Performance Targets</h2>
-          <p className="stat-label">Track your weekly goals and daily output</p>
+          <p className="stat-label">Track your monthly goal and commercial coverage</p>
         </div>
-        <button 
-          className="btn-secondary" 
+        <button
+          className="btn-secondary"
           onClick={() => setIsEditing(!isEditing)}
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
@@ -165,22 +234,55 @@ const TargetSection = ({ activities }) => {
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '1.5rem' }}>
               <div className="form-group">
-                <label>Weekly Target (Calls)</label>
-                <input 
-                  type="number" 
-                  value={editForm.weekly_goal} 
-                  onChange={(e) => setEditForm({...editForm, weekly_goal: e.target.value})}
+                <label>Monthly Target (Calls)</label>
+                <input
+                  type="number"
+                  value={editForm.monthly_goal}
+                  onChange={(e) => setEditForm({...editForm, monthly_goal: e.target.value})}
                 />
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   id="include_weekend"
                   checked={editForm.include_weekend}
                   onChange={(e) => setEditForm({...editForm, include_weekend: e.target.checked})}
                   style={{ width: '20px', height: '20px' }}
                 />
                 <label htmlFor="include_weekend" style={{ marginBottom: 0 }}>Include Fri/Sat in Target</label>
+              </div>
+              <div className="form-group">
+                <label>هدف تغطية الهايلايتس % (Commercial)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={editForm.highlights_target_pct}
+                  onChange={(e) => setEditForm({...editForm, highlights_target_pct: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>هدف نسبة الديسكاونت % (MV/GMV)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={editForm.discount_ratio_target_pct}
+                  onChange={(e) => setEditForm({...editForm, discount_ratio_target_pct: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>هدف العروض النشطة % (عرضين أو اكثر)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={editForm.offers_target_pct}
+                  onChange={(e) => setEditForm({...editForm, offers_target_pct: e.target.value})}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                 <button
@@ -204,56 +306,99 @@ const TargetSection = ({ activities }) => {
       </AnimatePresence>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '1.25rem' }}>
-        {/* Weekly Progress Card */}
-        <div className="glass-card" style={{ padding: '1.5rem' }}>
+        {/* Monthly Progress Card */}
+        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">Weekly Progress</div>
-            <Target size={20} color="var(--primary-color)" />
+            <div className="stat-label">
+              Monthly Progress ({stats.monthWorkDays} work days)
+              <br />
+              <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                {format(cycleStart, 'MMM d')} → {format(cycleEnd, 'MMM d')}
+              </span>
+            </div>
+            <Target size={20} color="#10b981" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
-            {stats.weekTotal} <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}>/ {target.weekly_goal}</span>
+            {stats.monthTotal} <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}>/ {stats.monthlyGoal} goal</span>
           </div>
           <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${stats.weeklyProgress}%` }}
-              style={{ height: '100%', background: 'linear-gradient(90deg, var(--primary-color), var(--accent-color))' }}
+              animate={{ width: `${stats.monthlyProgress}%` }}
+              style={{ height: '100%', background: stats.monthTotal >= stats.monthlyGoal ? 'var(--success)' : '#10b981' }}
             />
           </div>
-          <p className="stat-label" style={{ fontSize: '0.75rem' }}>{stats.weeklyProgress}% of your weekly goal reached</p>
+          <p className="stat-label" style={{ fontSize: '0.75rem' }}>
+            {stats.monthlyProgress}% من الهدف الشهري · {Math.max(0, stats.monthlyGoal - stats.monthTotal)} باقي
+          </p>
         </div>
 
-        {/* Daily Performance Card */}
-        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: `4px solid ${stats.status === 'exceeded' ? 'var(--success)' : 'var(--primary-color)'}` }}>
+        {/* Highlights Coverage Card (Commercial) */}
+        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">Daily Output ({target?.include_weekend ? 'Sun-Sat' : 'Sun-Thu'})</div>
-            <TrendingUp size={20} color={stats.status === 'exceeded' ? 'var(--success)' : 'var(--primary-color)'} />
+            <div className="stat-label">تغطية الهايلايتس (تجاري)</div>
+            <Target size={20} color="#f59e0b" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
-            {stats.todayTotal} <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}>/ {stats.dailyTarget} goal</span>
+            {stats.storesWithHighlights}
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.highlightsTargetCount} هدف</span>
           </div>
-          
-          <AnimatePresence mode="wait">
-            {stats.difference > 0 ? (
-              <motion.div 
-                key="exceeded"
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)', fontWeight: 600, fontSize: '0.875rem' }}
-              >
-                <CheckCircle2 size={16} />
-                +{stats.difference} calls above daily target!
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="remaining"
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)', fontSize: '0.875rem' }}
-              >
-                <AlertCircle size={16} />
-                {Math.abs(stats.difference)} more calls to hit daily target
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, stats.highlightsTargetCount > 0 ? (stats.storesWithHighlights / stats.highlightsTargetCount) * 100 : 0)}%` }}
+              style={{ height: '100%', background: stats.storesWithHighlights >= stats.highlightsTargetCount ? 'var(--success)' : '#f59e0b' }}
+            />
+          </div>
+          <p className="stat-label" style={{ fontSize: '0.75rem' }}>
+            الحالي {stats.currentHighlightsPct.toFixed(1)}% — الهدف {stats.highlightsTargetPct}% من {stats.activeCount} متجر نشط
+          </p>
+        </div>
+
+        {/* Discount Ratio Card (MV/GMV) */}
+        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #ef4444' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div className="stat-label">نسبة الديسكاونت (MV / GMV)</div>
+            <TrendingUp size={20} color="#ef4444" />
+          </div>
+          <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
+            {stats.currentDiscountRatioPct.toFixed(1)}%
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.discountRatioTargetPct}% هدف</span>
+          </div>
+          <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, stats.discountRatioTargetPct > 0 ? (stats.currentDiscountRatioPct / stats.discountRatioTargetPct) * 100 : 0)}%` }}
+              style={{ height: '100%', background: stats.currentDiscountRatioPct >= stats.discountRatioTargetPct ? 'var(--success)' : '#ef4444' }}
+            />
+          </div>
+          <p className="stat-label" style={{ fontSize: '0.75rem' }}>
+            {stats.currentDiscountRatioPct >= stats.discountRatioTargetPct
+              ? 'تحقق الهدف ✓'
+              : `باقي ${(stats.discountRatioTargetPct - stats.currentDiscountRatioPct).toFixed(1)}% للوصول للهدف`}
+          </p>
+        </div>
+
+        {/* Offers Target Card */}
+        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #8b5cf6' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div className="stat-label">هدف العروض النشطة</div>
+            <Target size={20} color="#8b5cf6" />
+          </div>
+          <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
+            {stats.storesWithTwoPlusOffers}
+            <span style={{ fontSize: '1rem', color: 'var(--text-dim)' }}> / {stats.offersTargetCount} هدف</span>
+          </div>
+          <div style={{ height: '8px', background: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(100, stats.offersTargetCount > 0 ? (stats.storesWithTwoPlusOffers / stats.offersTargetCount) * 100 : 0)}%` }}
+              style={{ height: '100%', background: stats.storesWithTwoPlusOffers >= stats.offersTargetCount ? 'var(--success)' : '#8b5cf6' }}
+            />
+          </div>
+          <p className="stat-label" style={{ fontSize: '0.75rem' }}>
+            الحالي {stats.currentOffersPct.toFixed(1)}% — الهدف {stats.offersTargetPct}% من {stats.overallActiveStores} متجر كلي
+          </p>
         </div>
       </div>
     </div>
