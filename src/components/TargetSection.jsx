@@ -9,7 +9,7 @@ import { getCommercialCycle } from '../utils/commercialCycle';
 // PostgREST error code: no rows returned by .maybeSingle() when table missing
 const POSTGREST_NOT_FOUND = 'PGRST116';
 
-const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
+const TargetSection = ({ activities, stores = [] }) => {
   const [target, setTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -139,17 +139,16 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
     const currentHighlightsPct = activeCount > 0 ? (storesWithHighlights / activeCount) * 100 : 0;
     const currentDiscountRatioPct = totalGmv > 0 ? (totalMv / totalGmv) * 100 : 0;
 
-    // Offers Target calculation
-    const overallActiveStores = stores.filter(s => s.is_active && !s.deleted_at).length;
-    const storeOfferCounts = {};
-    storeOffers.forEach(so => {
-      storeOfferCounts[so.store_id] = (storeOfferCounts[so.store_id] || 0) + 1;
-    });
-    const storesWithOffers = Object.values(storeOfferCounts).filter(count => count >= 1).length;
-    
+    // Active Offers Target — commercial stores with discount or MV > 0 count as 1
+    const storesWithOffers = commercialStores.filter(s => {
+      const mv = Number(s.performance_data?.commercial?.total_mv || 0);
+      const discount = Number(s.performance_data?.commercial?.discount_amount || 0);
+      return mv > 0 || discount > 0;
+    }).length;
+
     const offersTargetPct = Number(target.offers_target_pct || 0);
-    const offersTargetCount = Math.round((offersTargetPct / 100) * overallActiveStores);
-    const currentOffersPct = overallActiveStores > 0 ? (storesWithOffers / overallActiveStores) * 100 : 0;
+    const offersTargetCount = Math.round((offersTargetPct / 100) * activeCount);
+    const currentOffersPct = activeCount > 0 ? (storesWithOffers / activeCount) * 100 : 0;
 
     return {
       monthTotal: monthCalls.length,
@@ -163,13 +162,12 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
       currentHighlightsPct,
       discountRatioTargetPct,
       currentDiscountRatioPct,
-      overallActiveStores,
       storesWithOffers,
       offersTargetPct,
       offersTargetCount,
       currentOffersPct
     };
-  }, [activities, target, stores, cycleStart, cycleEnd, storeOffers]);
+  }, [activities, target, stores, cycleStart, cycleEnd]);
 
   if (loading) return (
     <div className="glass-card" style={{ padding: '3rem', display: 'flex', justifyContent: 'center' }}>
@@ -370,7 +368,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
         {/* Offers Target Card */}
         <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #8b5cf6' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <div className="stat-label">Active Offers Target (1+ Offer)</div>
+            <div className="stat-label">Active Offers (Commercial: MV or Discount &gt; 0)</div>
             <Target size={20} color="#8b5cf6" />
           </div>
           <div className="stat-value" style={{ marginBottom: '0.5rem' }}>
@@ -385,7 +383,7 @@ const TargetSection = ({ activities, stores = [], storeOffers = [] }) => {
             />
           </div>
           <p className="stat-label" style={{ fontSize: '0.75rem' }}>
-            Current {stats.currentOffersPct.toFixed(1)}% — Target {stats.offersTargetPct}% of {stats.overallActiveStores} total stores
+            Current {stats.currentOffersPct.toFixed(1)}% — Target {stats.offersTargetPct}% of {stats.activeCount} active stores
           </p>
         </div>
       </div>

@@ -600,7 +600,7 @@ const toggleStoreStatus = useCallback(async (id) => {
       case 'activities': return <ActivityLog activities={cycleActivities} stores={stores} outcomes={outcomes} onAddActivity={addActivity} onResolveActivity={resolveActivity} onBulkResolve={bulkResolveActivities} />;
       case 'stats': return <Stats calls={activities} outcomes={outcomes} stores={stores} />;
       case 'performance': return <PerformanceDashboard stores={stores} onFetchInitialData={fetchInitialData} notify={notify} onAddStore={addStore} />;
-      case 'target': return <TargetSection activities={activities} stores={stores} storeOffers={storeOffers} />;
+      case 'target': return <TargetSection activities={activities} stores={stores} />;
       case 'library': return <Library links={links} libraryError={libraryError} onAddLink={addLibraryLink} onUpdateLink={updateLibraryLink} onDeleteLink={deleteLibraryLink} />;
       case 'offers': return <Offers offers={offers} stores={activeStores} storeOffers={storeOffers} onAddOffer={addOffer} onUpdateOffer={updateOffer} onDeleteOffer={deleteOffer} onAssignOffer={assignStoreOffer} onBulkAssign={bulkAssignStoreOffer} onUnassignOffer={unassignStoreOffer} />;
       case 'menu-extractor': return <MenuExtractor />;
