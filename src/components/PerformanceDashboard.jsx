@@ -381,21 +381,50 @@ const PerformanceDashboard = ({ stores = [], onFetchInitialData, notify, onAddSt
                     {copiedId === s.id ? '✓ Copied' : 'Copy ID'}
                   </button>
                   {onAddStore && (
-                    <button
-                      onClick={() => {
-                        if (quickAddStore?.name === s.name) { setQuickAddStore(null); return; }
-                        setQuickAddStore(s);
-                        setQuickAddForm({ zone: '', category: '', owner_name: '', phone: '' });
-                      }}
-                      style={{
-                        padding: '4px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                        background: quickAddStore?.name === s.name ? '#fef3c7' : '#dcfce7',
-                        color: quickAddStore?.name === s.name ? '#92400e' : '#15803d',
-                        fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s', whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {quickAddStore?.name === s.name ? '✕ Cancel' : '+ Add'}
-                    </button>
+                    quickAddStore?.name === s.name ? (
+                      <>
+                        <button
+                          onClick={handleQuickAdd}
+                          disabled={isAdding}
+                          style={{
+                            padding: '4px 12px', borderRadius: '7px', border: 'none',
+                            cursor: isAdding ? 'not-allowed' : 'pointer',
+                            background: 'var(--success)', color: 'white',
+                            fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s',
+                            whiteSpace: 'nowrap', opacity: isAdding ? 0.7 : 1
+                          }}
+                        >
+                          {isAdding ? 'Adding...' : '+ Add Now'}
+                        </button>
+                        <button
+                          onClick={() => setQuickAddStore(null)}
+                          disabled={isAdding}
+                          style={{
+                            padding: '4px 12px', borderRadius: '7px', border: 'none',
+                            cursor: isAdding ? 'not-allowed' : 'pointer',
+                            background: '#fef3c7', color: '#92400e',
+                            fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s',
+                            whiteSpace: 'nowrap', opacity: isAdding ? 0.7 : 1
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setQuickAddStore(s);
+                          setQuickAddForm({ zone: '', category: '', owner_name: '', phone: '' });
+                        }}
+                        style={{
+                          padding: '4px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                          background: '#dcfce7', color: '#15803d',
+                          fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        + Add
+                      </button>
+                    )
                   )}
                 </div>
 
